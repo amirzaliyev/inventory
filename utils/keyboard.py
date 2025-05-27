@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from resources.string import BACK
+
+if TYPE_CHECKING:
+    from aiogram.types import InlineKeyboardMarkup
 
 
 def make_inline_kb(

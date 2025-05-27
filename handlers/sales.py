@@ -12,28 +12,13 @@ from data.repositories import (IBranchRepository, IOrderRepository,
                                IProductRepository)
 from handlers.forms import SalesOrderForm
 from handlers.notifications import send_message_to_admin
-from keyboards import (back_kb, branches_kb, products_kb, save_kb,
-                       select_date_kb)
-from resources.string import (SALES, SAVE, SELECT_BRANCH, SELECT_DATE,
-                              SELECT_PRODUCT, SOLD_PRODUCT_PRICE,
-                              SOLD_PRODUCT_QUANTITY, SUCCESSFULLY_SAVED)
+from keyboards import back_kb, products_kb, save_kb, select_date_kb
+from resources.string import (SAVE, SELECT_DATE, SELECT_PRODUCT,
+                              SOLD_PRODUCT_PRICE, SOLD_PRODUCT_QUANTITY,
+                              SUCCESSFULLY_SAVED)
 from utils import push_state_stack
 
 sales_router = Router(name="sales")
-
-
-@sales_router.callback_query(F.data == SALES)
-async def show_branches(
-    callback: CallbackQuery, state: FSMContext, branch_repo: IBranchRepository
-):
-    await push_state_stack(state, SalesOrderForm.branch_id)
-
-    branches: Dict[str, Any] = branch_repo.all(as_dict=True)  # type: ignore
-
-    await callback.message.edit_text(  # type: ignore
-        text=SELECT_BRANCH,
-        reply_markup=branches_kb(branches),
-    )
 
 
 @sales_router.callback_query(
@@ -75,8 +60,6 @@ async def show_products(
         await callback.message.edit_text(  # type: ignore
             text=SELECT_PRODUCT, reply_markup=products_kb(products=products)
         )
-    print(f"selected: {selected}")
-    print(f'date: {date}')
 
 
 @sales_router.callback_query(

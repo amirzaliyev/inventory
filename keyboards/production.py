@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from data.models import Employee
 
 
-def branches_kb(branches: Dict[str, Any]) -> InlineKeyboardMarkup:
+def branches_kb(branches: List[Dict[str, Any]]) -> InlineKeyboardMarkup:
     """Available branches"""
     # static data only for now
     buttons = []

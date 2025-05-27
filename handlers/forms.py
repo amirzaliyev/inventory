@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, List
 
 from aiogram.fsm.state import State, StatesGroup
 
@@ -36,6 +36,12 @@ class SalesOrderForm(StatesGroup):
     save = State()
 
 
+class StatisticsForm(StatesGroup):
+    activity = State()
+    branch_id = State()
+    period = State()
+
+
 async def dispatch_state(
     state: FSMContext,
     branch_repo: Optional[IBranchRepository] = None,
@@ -44,9 +50,10 @@ async def dispatch_state(
     current = await state.get_state()
     match current:
         case SalesOrderForm.branch_id | ProductionRecordForm.branch_id:
-            branches: Dict[str, Any] = branch_repo.all(as_dict=True)  # type: ignore
+            branches: List[Dict[str, Any]] = branch_repo.all(as_dict=True)  # type: ignore
 
             return SELECT_BRANCH, branches_kb(branches=branches)
+
         case SalesOrderForm.date | ProductionRecordForm.date:
 
             return SELECT_DATE, await select_date_kb()

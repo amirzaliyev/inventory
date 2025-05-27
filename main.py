@@ -13,7 +13,7 @@ from data.repositories import (BranchRepository, EmployeeRepository,
                                OrderRepository, ProductionRecordRepository,
                                ProductRepository)
 from handlers import (main_router, production_router, sales_router,
-                      unhandled_router)
+                      stat_router, unhandled_router)
 
 
 async def main() -> None:
@@ -24,14 +24,14 @@ async def main() -> None:
     dp = Dispatcher()
 
     # register routers
-    dp.include_routers(*[main_router, production_router, sales_router])
+    dp.include_routers(*[stat_router, main_router, production_router, sales_router]) # todo change the logic routing to stats
     dp.include_router(unhandled_router)
 
     # Initialize dependencies
     engine = get_engine(settings.database_url_psycopg2)
     sessionmaker_factory = get_sessionmaker(engine)
     prod_record_repo = ProductionRecordRepository(
-        session=sessionmaker_factory, record_type=ProductionRecord
+        session=sessionmaker_factory, model=ProductionRecord
     )
     emp_repo = EmployeeRepository(session=sessionmaker_factory, model=Employee)
     branch_repo = BranchRepository(session=sessionmaker_factory, model=Branch)
@@ -44,7 +44,7 @@ async def main() -> None:
         emp_repo=emp_repo,
         branch_repo=branch_repo,
         product_repo=product_repo,
-        order_repo=order_repo
+        order_repo=order_repo,
     )
 
 

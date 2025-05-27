@@ -21,7 +21,9 @@ class IBranchRepository(ABC):
         self._model = model
 
     @abstractmethod
-    def all(self, as_dict: bool = False) -> Union[Sequence[Branch], Dict[str, Any]]:
+    def all(
+        self, as_dict: bool = False
+    ) -> Union[Sequence[Branch], List[Dict[str, Any]]]:
         """
         Retrieves all branches
 
@@ -64,7 +66,9 @@ class BranchRepository(IBranchRepository):
     def __init__(self, session: "sessionmaker[Session]", model: Type[Branch]) -> None:
         super().__init__(session=session, model=model)
 
-    def all(self, as_dict: bool = False) -> Union[Sequence[Branch], Dict[str, Any]]:
+    def all(
+        self, as_dict: bool = False
+    ) -> Union[Sequence[Branch], List[Dict[str, Any]]]:
         with self._session() as session:
             stmt = select(self._model.id, self._model.name)
             results = session.execute(stmt)

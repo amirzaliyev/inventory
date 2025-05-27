@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 # DIR = Path(__file__).absolute().parent
 BOT_DIR = Path(__file__).absolute().parent
+MEDIA_DIR = Path(BOT_DIR, "media")
 LOCALES_DIR = Path.joinpath(BOT_DIR, "locales")
 I18N_DOMAIN = "messages"
 DEFAULT_LOCALE = "en"

@@ -4,18 +4,16 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from aiogram import F, Router
-from aiogram.filters import Command
 from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
 
 from config import settings
 from data.models import Attendance, ProductionRecord
 from handlers.forms import ProductionRecordForm
-from keyboards import (back_kb, branches_kb, products_kb, save_kb,
-                       select_date_kb, workers_on_duty_kb)
-from resources.string import (ATTENDANCE, MANUFACTURED_PRODUCT_QUANTITY,
-                              PRODUCTION, READY, SAVE, SELECT_BRANCH,
-                              SELECT_DATE, SELECT_PRODUCT, SUCCESSFULLY_SAVED,
-                              USED_CEMENT_AMOUNT)
+from keyboards import (back_kb, products_kb, save_kb, select_date_kb,
+                       workers_on_duty_kb)
+from resources.string import (ATTENDANCE, MANUFACTURED_PRODUCT_QUANTITY, READY,
+                              SAVE, SELECT_DATE, SELECT_PRODUCT,
+                              SUCCESSFULLY_SAVED, USED_CEMENT_AMOUNT)
 from utils.state_stack import push_state_stack
 
 if TYPE_CHECKING:
@@ -31,22 +29,6 @@ if TYPE_CHECKING:
 
 
 production_router = Router(name="production")
-
-
-@production_router.callback_query(F.data == PRODUCTION)
-@production_router.message(Command("ishlab_chiqarish"))
-async def add_record(
-    callback: CallbackQuery, state: FSMContext, branch_repo: IBranchRepository
-) -> None:
-    """Shows available branches, of which new manufacturing record will be added"""
-    await push_state_stack(state, ProductionRecordForm.branch_id)
-
-    # load branches from database
-    branches = branch_repo.all(as_dict=True)
-
-    await callback.message.edit_text(  # type: ignore
-        text=SELECT_BRANCH, reply_markup=branches_kb(branches=branches)  # type: ignore
-    )
 
 
 @production_router.callback_query(
@@ -235,6 +217,7 @@ async def save_to_db(
     prod_record_repo: IProductionRecordRepository,
 ):
     data = await state.get_data()
+    await state.clear()
 
     new_prod_record = data["new_prod_record"]
     present_employees = data["present_employees"]
