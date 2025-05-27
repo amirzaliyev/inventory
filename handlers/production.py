@@ -39,8 +39,8 @@ async def select_branch(
 ) -> None:
     """Processes the selected branch and shows its production line"""
 
-    new_prod_record = {"branch_id": int(digits.group(1))}
-    await state.update_data(new_prod_record=new_prod_record)
+    new_record = {"branch_id": int(digits.group(1))}
+    await state.update_data(new_record=new_record)
 
     await push_state_stack(state, ProductionRecordForm.date)
 
@@ -62,13 +62,13 @@ async def process_date(
     selected, date = await SimpleCalendar().process_selection(callback, callback_data)
 
     if selected:
-        new_prod_record = await state.get_value("new_prod_record", {})
+        new_record = await state.get_value("new_record", {})
 
-        new_prod_record["date"] = date.strftime("%Y-%m-%d")
-        await state.update_data(new_prod_record=new_prod_record)
+        new_record["date"] = date.strftime("%Y-%m-%d")
+        await state.update_data(new_record=new_record)
 
         await push_state_stack(state, ProductionRecordForm.product_id)
-        branch_id = new_prod_record["branch_id"]
+        branch_id = new_record["branch_id"]
 
         # load product from database
         products = branch_repo.get_branch_products(branch_id=branch_id)
@@ -83,18 +83,24 @@ async def process_date(
     F.data.regexp(r"product_(\d+)").as_("product_id_re"),
 )
 async def process_product(
-    callback: CallbackQuery, state: FSMContext, product_id_re: Match
+    callback: CallbackQuery,
+    state: FSMContext,
+    product_id_re: Match,
+    product_repo: IProductRepository,
 ) -> None:
     """Processes the selected product"""
-    new_prod_record = await state.get_value("new_prod_record", {})
+    new_record = await state.get_value("new_record", {})
+    product_id = int(product_id_re.group(1))
 
-    new_prod_record["product_id"] = int(product_id_re.group(1))
-    await state.update_data(new_prod_record=new_prod_record)
+    product_name = product_repo.get_by_id(product_id=product_id).name
+    new_record["product_id"] = product_id
+
+    await state.update_data(new_record=new_record, product_name=product_name)
 
     await push_state_stack(state, ProductionRecordForm.quantity)
 
     await callback.message.edit_text(  # type: ignore
-        text=MANUFACTURED_PRODUCT_QUANTITY, reply_markup=back_kb()
+        text=MANUFACTURED_PRODUCT_QUANTITY.format(product_name), reply_markup=back_kb()
     )
 
 
@@ -103,14 +109,16 @@ async def process_product(
 )
 async def process_quantity(message: Message, state: FSMContext, quantity_re: Match):
     """Processes the quantity of manufactured goods"""
-    new_prod_record = await state.get_value("new_prod_record", {})
+    data = await state.get_data()
+    new_record = data.get('new_record', {})
+    product_name = data.get('product_name', '')
 
-    new_prod_record["quantity"] = int(quantity_re.group(1))
-    await state.update_data(new_prod_record=new_prod_record)
+    new_record["quantity"] = int(quantity_re.group(1))
+    await state.update_data(new_record=new_record)
 
     await push_state_stack(state, ProductionRecordForm.used_cement_amount)
 
-    await message.answer(text=USED_CEMENT_AMOUNT, reply_markup=back_kb())
+    await message.answer(text=USED_CEMENT_AMOUNT.format(product_name), reply_markup=back_kb())
 
 
 @production_router.message(
@@ -126,10 +134,10 @@ async def process_cement_amount(
     """Processes the used cement for the production"""
     await push_state_stack(state, ProductionRecordForm.workers)
 
-    new_prod_record = await state.get_value("new_prod_record", {})
+    new_record = await state.get_value("new_record", {})
 
-    new_prod_record["used_cement_amount"] = int(used_cement_amount_re.group(1))
-    branch_id = new_prod_record["branch_id"]
+    new_record["used_cement_amount"] = int(used_cement_amount_re.group(1))
+    branch_id = new_record["branch_id"]
 
     # set present employees
     workers = emp_repo.all(branch_id=branch_id)
@@ -138,7 +146,7 @@ async def process_cement_amount(
     await state.update_data(
         workers=workers,
         present_employees=present_employees,
-        new_prod_record=new_prod_record,
+        new_record=new_record,
     )
 
     await message.answer(
@@ -195,11 +203,11 @@ async def show_summary(
     data = await state.get_data()
     await push_state_stack(state, ProductionRecordForm.save)
 
-    new_prod_record = data["new_prod_record"]
+    new_record = data["new_record"]
     present_employees = data["present_employees"]
 
     message = summary_message(
-        data=new_prod_record,
+        data=new_record,
         branch_repo=branch_repo,
         product_repo=product_repo,
         present_employees=present_employees,
@@ -219,12 +227,12 @@ async def save_to_db(
     data = await state.get_data()
     await state.clear()
 
-    new_prod_record = data["new_prod_record"]
+    new_record = data["new_record"]
     present_employees = data["present_employees"]
     message = data["message"]
     _save_to_db(
         repository=prod_record_repo,
-        new_prod_record=new_prod_record,
+        new_record=new_record,
         workers=present_employees,
     )
     await bot.send_message(settings.SUPER_ADMIN, text=message)
@@ -255,12 +263,12 @@ def summary_message(
 
 def _save_to_db(
     repository: IProductionRecordRepository,
-    new_prod_record: Dict[str, Any],
+    new_record: Dict[str, Any],
     workers: List[int],
 ) -> None:
-    new_record = ProductionRecord(**new_prod_record)
+    new_record_obj = ProductionRecord(**new_record)
 
-    new_inserted_record = repository.create_record(new_record=new_record)
+    new_inserted_record = repository.create_record(new_record=new_record_obj)
 
     attendance_records = []
     for worker in workers:

@@ -26,9 +26,9 @@ sales_router = Router(name="sales")
 )
 async def select_date(callback: CallbackQuery, state: FSMContext, branch_id_re: Match):
     await push_state_stack(state, SalesOrderForm.date)
-    order = {"branch_id": int(branch_id_re.group(1))}
+    new_record = {"branch_id": int(branch_id_re.group(1))}
 
-    await state.update_data(order=order)
+    await state.update_data(new_record=new_record)
 
     await callback.message.edit_text(  # type: ignore
         text=SELECT_DATE, reply_markup=await select_date_kb()
@@ -46,13 +46,13 @@ async def show_products(
     selected, date = await SimpleCalendar().process_selection(callback, callback_data)
 
     if selected:
-        order = await state.get_value("order", {})
-        order["date"] = date.strftime("%Y-%m-%d")
-        await state.update_data(order=order)
+        new_record = await state.get_value("new_record", {})
+        new_record["date"] = date.strftime("%Y-%m-%d")
+        await state.update_data(new_record=new_record)
 
         await push_state_stack(state, SalesOrderForm.product_id)
 
-        branch_id = order["branch_id"]
+        branch_id = new_record["branch_id"]
 
         # load product from database
         products = branch_repo.get_branch_products(branch_id=branch_id)
@@ -66,17 +66,22 @@ async def show_products(
     SalesOrderForm.product_id, F.data.regexp(r"^product_(\d+)$").as_("product_id_re")
 )
 async def get_quantity(
-    callback: CallbackQuery, state: FSMContext, product_id_re: Match
+    callback: CallbackQuery,
+    state: FSMContext,
+    product_id_re: Match,
+    product_repo: IProductRepository,
 ):
     await push_state_stack(state, SalesOrderForm.quantity)
 
-    order = await state.get_value("order", {})
+    new_record = await state.get_value("new_record", {})
+    product_id = int(product_id_re.group(1))
+    product_name = product_repo.get_by_id(product_id=product_id).name
 
-    order["product_id"] = int(product_id_re.group(1))
-    await state.update_data(order=order)
+    new_record["product_id"] = product_id
+    await state.update_data(new_record=new_record, product_name=product_name)
 
     await callback.message.edit_text(  # type: ignore
-        text=SOLD_PRODUCT_QUANTITY, reply_markup=back_kb()
+        text=SOLD_PRODUCT_QUANTITY.format(product_name), reply_markup=back_kb()
     )
 
 
@@ -86,12 +91,17 @@ async def get_quantity(
 async def get_price(message: Message, state: FSMContext, quantity_re: Match):
     await push_state_stack(state, SalesOrderForm.price)
 
-    order = await state.get_value("order", {})
+    data = await state.get_data()
 
-    order["quantity"] = int(quantity_re.group(1))
-    await state.update_data(order=order)
+    new_record = data["new_record"]
+    product_name = data["product_name"]
 
-    await message.answer(text=SOLD_PRODUCT_PRICE, reply_markup=back_kb())
+    new_record["quantity"] = int(quantity_re.group(1))
+    await state.update_data(new_record=new_record)
+
+    await message.answer(
+        text=SOLD_PRODUCT_PRICE.format(product_name), reply_markup=back_kb()
+    )
 
 
 @sales_router.message(SalesOrderForm.price, F.text.regexp(r"^(\d+)$").as_("price_re"))
@@ -104,16 +114,16 @@ async def show_summary(
 ):
     await push_state_stack(state, SalesOrderForm.save)
 
-    order = await state.get_value("order", {})
+    new_record = await state.get_value("new_record", {})
 
     price = int(price_re.group(1))
-    order["price"] = price
-    order["total_amount"] = price * order["quantity"]
+    new_record["price"] = price
+    new_record["total_amount"] = price * new_record["quantity"]
 
-    summary_msg = order_details(
-        order=order, branch_repo=branch_repo, product_repo=product_repo
+    summary_msg = new_record_details(
+        new_record=new_record, branch_repo=branch_repo, product_repo=product_repo
     )
-    await state.update_data(order=order, message=summary_msg)
+    await state.update_data(new_record=new_record, message=summary_msg)
 
     await message.answer(summary_msg, reply_markup=save_kb())
 
@@ -122,39 +132,39 @@ async def show_summary(
 async def save_to_db(
     callback: CallbackQuery, bot: Bot, state: FSMContext, order_repo: IOrderRepository
 ):
-    order = await state.get_value("order", {})
+    new_record = await state.get_value("new_record", {})
     message = await state.get_value("message", "")
     await state.clear()
 
     # Save to db
-    _save_to_db(order=order, order_repo=order_repo)
+    _save_to_db(new_record=new_record, order_repo=order_repo)
     await send_message_to_admin(bot=bot, context=message)
 
     await callback.message.edit_text(text=message)  # type: ignore
     await callback.message.answer(text=SUCCESSFULLY_SAVED)  # type: ignore
 
 
-def _save_to_db(order: Dict[str, Any], order_repo: IOrderRepository):
-    new_order = Order(**order)
+def _save_to_db(new_record: Dict[str, Any], order_repo: IOrderRepository):
+    new_order = Order(**new_record)
 
     order_repo.create_new(new_order)
 
 
-def order_details(
-    order: Dict[str, Any],
+def new_record_details(
+    new_record: Dict[str, Any],
     branch_repo: IBranchRepository,
     product_repo: IProductRepository,
 ) -> str:
     msg = "<b>Sotuv</b>\n\n"
-    branch = branch_repo.get_by_id(branch_id=order["branch_id"])
-    product = product_repo.get_by_id(product_id=order["product_id"])
-    date = datetime.strptime(order["date"], "%Y-%m-%d").strftime("%d.%m.%Y")
+    branch = branch_repo.get_by_id(branch_id=new_record["branch_id"])
+    product = product_repo.get_by_id(product_id=new_record["product_id"])
+    date = datetime.strptime(new_record["date"], "%Y-%m-%d").strftime("%d.%m.%Y")
 
     msg += f"Bo'lim: <blockquote>{branch.name}</blockquote>\n"
     msg += f"Sana: <blockquote>{date}</blockquote>\n"
     msg += f"Mahsulot nomi: <blockquote>{product.name}</blockquote>\n"
-    msg += f"Mahsulot soni: <blockquote>{order['quantity']}</blockquote>\n"
-    msg += f"Mahsulot narxi: <blockquote>{order['price']} so'm</blockquote>\n"
-    msg += f"Jami summa: <blockquote>{order['total_amount']:,} so'm</blockquote>\n"
+    msg += f"Mahsulot soni: <blockquote>{new_record['quantity']}</blockquote>\n"
+    msg += f"Mahsulot narxi: <blockquote>{new_record['price']} so'm</blockquote>\n"
+    msg += f"Jami summa: <blockquote>{new_record['total_amount']:,} so'm</blockquote>\n"
 
     return msg

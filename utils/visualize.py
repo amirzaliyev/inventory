@@ -36,7 +36,7 @@ def to_pdf(title: str, df: DataFrame, period: Dict) -> tuple[str, str]:
     period_str = f"{period['date_from']:%d.%m.%Y} - {period['date_to']:%d.%m.%Y}"
 
     # Create a figure and an axis
-    _, ax = plt.subplots(figsize=(8, 2))
+    _, ax = plt.subplots(figsize=(12, 4))
     ax.axis("off")
 
     # Set title
@@ -59,6 +59,6 @@ def to_pdf(title: str, df: DataFrame, period: Dict) -> tuple[str, str]:
         os.remove(file_path)
 
     plt.savefig(file_path, bbox_inches="tight", dpi=200, format="pdf")
-    plt.savefig(thumbnail_path, bbox_inches="tight", dpi=400, format="png")
+    plt.savefig(thumbnail_path, bbox_inches="tight", dpi=200, format="png")
 
     return str(file_path), str(thumbnail_path)

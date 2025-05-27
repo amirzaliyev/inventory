@@ -9,7 +9,7 @@ from aiogram.filters import Command, CommandStart, or_f
 from handlers.forms import ProductionRecordForm, SalesOrderForm, dispatch_state
 from keyboards import current_action_kb
 from resources.string import BACK, CANCELLED_BACK_TO_START, WELCOME_TEXT
-from utils.state_stack import push_state_stack
+from utils.state_stack import get_last_state, push_state_stack
 
 if TYPE_CHECKING:
     from re import Match
@@ -48,18 +48,16 @@ async def start_record_adding(
 
 
 @main_router.callback_query(or_f(F.data == BACK, Command("cancel")))
-@main_router.callback_query(F.data == "simple_calendar:cancel")
 async def cancel(
     callback: CallbackQuery,
     state: FSMContext,
     branch_repo: IBranchRepository,
     emp_repo: IEmployeeRepository,
 ) -> None:
-    stack = await state.get_value("state_stack", [])
+    last_state = await get_last_state(state=state)
 
-    if stack:
-        last_state = stack.pop()
-        await push_state_stack(state=state, next_state=last_state)
+    if last_state:
+        await state.set_state(last_state)
         text, kb = await dispatch_state(
             state=state, branch_repo=branch_repo, emp_repo=emp_repo
         )
