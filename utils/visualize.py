@@ -15,7 +15,6 @@ def make_df(
     data: Iterable,
     col_order: Optional[List[str]] = None,
     column_names: Optional[List[str]] = None,
-    human_readable: bool = True,
 ) -> DataFrame:
     df = DataFrame(data)
 
@@ -25,18 +24,24 @@ def make_df(
     if column_names:
         df.columns = column_names
 
-    if human_readable is True:
-        return df.map(lambda x: f"{x:,}" if isinstance(x, (int, float)) else x)  # type: ignore
-
     return df  # type: ignore
 
 
-def to_pdf(title: str, df: DataFrame, period: Dict) -> tuple[str, str]:
+def make_human_readable(df):
+    return df.map(lambda x: f"{x:,}" if isinstance(x, (int, float)) else x)  # type: ignore
+
+
+def to_pdf(
+    title: str, df: DataFrame, period: Dict, figsize: tuple[int, int] = None
+) -> tuple[str, str]:
 
     period_str = f"{period['date_from']:%d.%m.%Y} - {period['date_to']:%d.%m.%Y}"
 
     # Create a figure and an axis
-    _, ax = plt.subplots(figsize=(12, 4))
+    if figsize is None:
+        figsize = (8, 2)
+
+    _, ax = plt.subplots(figsize=figsize)
     ax.axis("off")
 
     # Set title
@@ -58,7 +63,10 @@ def to_pdf(title: str, df: DataFrame, period: Dict) -> tuple[str, str]:
     if os.path.exists(file_path):
         os.remove(file_path)
 
+    if os.path.exists(thumbnail_path):
+        os.remove(thumbnail_path)
+
     plt.savefig(file_path, bbox_inches="tight", dpi=200, format="pdf")
-    plt.savefig(thumbnail_path, bbox_inches="tight", dpi=200, format="png")
+    plt.savefig(thumbnail_path, bbox_inches="tight", dpi=100, format="png")
 
     return str(file_path), str(thumbnail_path)

@@ -22,7 +22,6 @@ async def push_state_stack(state: FSMContext, next_state: State) -> None:
     current_state = await state.get_state()
 
     if current_state:
-        print(current_state)
         stack.append(current_state)
 
         await state.update_data(state_stack=stack)

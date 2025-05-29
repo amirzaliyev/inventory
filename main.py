@@ -7,13 +7,15 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums.parse_mode import ParseMode
 
 from config import settings
+from core.accounting import Accounting
 from data.db import get_engine, get_sessionmaker
-from data.models import Branch, Employee, Order, Product, ProductionRecord
+from data.models import Branch, Employee, Order, Product, ProductionRecord, User
 from data.repositories import (BranchRepository, EmployeeRepository,
                                OrderRepository, ProductionRecordRepository,
                                ProductRepository)
-from handlers import (main_router, production_router, sales_router,
-                      stat_router, unhandled_router)
+from data.repositories.user_repository import UserRepository
+from handlers import (accounting_router, main_router, production_router,
+                      sales_router, stat_router, unhandled_router)
 
 
 async def main() -> None:
@@ -24,7 +26,9 @@ async def main() -> None:
     dp = Dispatcher()
 
     # register routers
-    dp.include_routers(*[stat_router, main_router, production_router, sales_router]) # todo change the logic routing to stats
+    dp.include_routers(
+        *[stat_router, main_router, production_router, sales_router, accounting_router]
+    )  # todo change the logic routing to stats
     dp.include_router(unhandled_router)
 
     # Initialize dependencies
@@ -37,6 +41,13 @@ async def main() -> None:
     branch_repo = BranchRepository(session=sessionmaker_factory, model=Branch)
     product_repo = ProductRepository(session=sessionmaker_factory, model=Product)
     order_repo = OrderRepository(session=sessionmaker_factory, model=Order)
+    user_repo = UserRepository(session=sessionmaker_factory, model=User)
+
+    accounting = Accounting(
+        branch_repo=branch_repo,
+        order_repo=order_repo,
+        prod_record_repo=prod_record_repo,
+    )
 
     await dp.start_polling(
         bot,
@@ -45,6 +56,8 @@ async def main() -> None:
         branch_repo=branch_repo,
         product_repo=product_repo,
         order_repo=order_repo,
+        user_repo=user_repo,
+        accounting=accounting,
     )
 
 

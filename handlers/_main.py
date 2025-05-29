@@ -6,9 +6,11 @@ from typing import TYPE_CHECKING
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart, or_f
 
+from data.exceptions import RecordNotFound
+from data.repositories.user_repository import IUserRepository
 from handlers.forms import ProductionRecordForm, SalesOrderForm, dispatch_state
 from keyboards import current_action_kb
-from resources.string import BACK, CANCELLED_BACK_TO_START, WELCOME_TEXT
+from resources.string import BACK, CANCELLED_BACK_TO_START, WELCOME_TEXT, NO_PERMISSION
 from utils.state_stack import get_last_state, push_state_stack
 
 if TYPE_CHECKING:
@@ -23,9 +25,15 @@ main_router = Router(name="main")
 
 
 @main_router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext) -> None:
-    await message.answer(WELCOME_TEXT, reply_markup=current_action_kb())
-    await state.clear()
+async def cmd_start(message: Message, state: FSMContext, user_repo: IUserRepository) -> None:
+    user_id = message.from_user.id
+    try: # todo create authentication model
+        user = user_repo.get_by_id(user_id=user_id)
+        await message.answer(WELCOME_TEXT, reply_markup=current_action_kb())
+        await state.clear()
+
+    except RecordNotFound:
+        await message.answer(NO_PERMISSION)
 
 
 @main_router.callback_query(F.data.regexp(r"activity_(\w+)").as_("activity_re"))

@@ -6,10 +6,12 @@ from aiogram.fsm.state import State, StatesGroup
 
 from data.repositories.employee_repository import IEmployeeRepository
 from keyboards import back_kb, branches_kb, products_kb, select_date_kb
+from keyboards.main_handler import current_action_kb
 from keyboards.production import workers_on_duty_kb
 from resources.string import (ATTENDANCE, SELECT_BRANCH, SELECT_DATE,
                               SELECT_PRODUCT, SOLD_PRODUCT_PRICE,
-                              SOLD_PRODUCT_QUANTITY, USED_CEMENT_AMOUNT)
+                              SOLD_PRODUCT_QUANTITY, USED_CEMENT_AMOUNT,
+                              WELCOME_TEXT)
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
@@ -49,17 +51,17 @@ async def dispatch_state(
 ):
     current = await state.get_state()
 
-    match current:
-        case SalesOrderForm.branch_id | ProductionRecordForm.branch_id:
+    match current.split(":")[-1]:
+        case "branch_id":
             branches: List[Dict[str, Any]] = branch_repo.all(as_dict=True)  # type: ignore
 
             return SELECT_BRANCH, branches_kb(branches=branches)
 
-        case SalesOrderForm.date | ProductionRecordForm.date:
+        case "date":
 
             return SELECT_DATE, await select_date_kb()
 
-        case SalesOrderForm.product_id | ProductionRecordForm.product_id:
+        case "product_id":
             order = await state.get_value("new_record", {})
             branch_id = order["branch_id"]
 
@@ -68,21 +70,21 @@ async def dispatch_state(
 
                 return SELECT_PRODUCT, products_kb(products=products)
 
-        case SalesOrderForm.quantity | ProductionRecordForm.quantity:
+        case "quantity":
             product_name = await state.get_value("product_name", "")
 
             return SOLD_PRODUCT_QUANTITY.format(product_name), back_kb()
 
-        case SalesOrderForm.price:
-            product_name = await state.get_value('product_name', '')
+        case "price":
+            product_name = await state.get_value("product_name", "")
 
             return SOLD_PRODUCT_PRICE.format(product_name), back_kb()
-        case ProductionRecordForm.used_cement_amount:
-            product_name = await state.get_value('product_name', '')
+        case "used_cement_amount":
+            product_name = await state.get_value("product_name", "")
 
             return USED_CEMENT_AMOUNT.format(product_name), back_kb()
 
-        case ProductionRecordForm.workers:
+        case "workers":
             new_record = await state.get_value("new_record", {})
             present_employees = await state.get_value("present_employees", {})
             branch_id = new_record["branch_id"]
@@ -93,5 +95,8 @@ async def dispatch_state(
                 return ATTENDANCE, workers_on_duty_kb(
                     workers=workers, present_employees=present_employees
                 )
+
+        case "activity":
+            return WELCOME_TEXT, current_action_kb()
 
     raise ValueError("Come on")

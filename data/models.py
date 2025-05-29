@@ -3,14 +3,26 @@ from typing import List
 
 from sqlalchemy import (DATE, TIMESTAMP, ForeignKey, String, UniqueConstraint,
                         text)
+from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
-
     created_at: Mapped[str] = mapped_column(
         TIMESTAMP, default=datetime.now(), server_default=text("current_timestamp")
     )
+
+
+class User(Base):
+    __tablename__ = 'users'
+
+    id: Mapped[int] = mapped_column(BIGINT, primary_key=True, autoincrement=False)
+    first_name: Mapped[str] = mapped_column(String(30))
+    last_name: Mapped[str] = mapped_column(String(30), nullable=True)
+    username: Mapped[str] = mapped_column(String(30), nullable=True)
+    phone_number: Mapped[str] = mapped_column(String(25), unique=True)
+
+    branches: Mapped['Branch'] = relationship()
 
 
 class Branch(Base):
@@ -18,6 +30,7 @@ class Branch(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(unique=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey('users.id'), nullable=True)
 
     branch_products: Mapped[List["BranchProduct"]] = relationship()
 
@@ -42,6 +55,9 @@ class ProductionRecord(Base):
     branch_id: Mapped[int] = mapped_column(ForeignKey("branches.id"))
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
 
+    employees = relationship("Attendance", back_populates="production_record")
+    product: Mapped["Product"] = relationship()
+
 
 class Employee(Base):
     __tablename__ = "employees"
@@ -52,6 +68,8 @@ class Employee(Base):
 
     branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"))
 
+    attendances = relationship("Attendance", back_populates="employee")
+
 
 class Attendance(Base):
     __tablename__ = "attendance"
@@ -61,6 +79,9 @@ class Attendance(Base):
     production_record_id: Mapped[int] = mapped_column(
         ForeignKey("production_records.id")
     )
+
+    employee = relationship("Employee", back_populates="attendances")
+    production_record = relationship("ProductionRecord", back_populates="employees")
 
 
 class BranchProduct(Base):

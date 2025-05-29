@@ -5,4 +5,4 @@ __pycache__/
 pyrightconfig.json
 .venv/
 media/
-
+*.sql
