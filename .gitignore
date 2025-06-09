@@ -6,3 +6,5 @@ pyrightconfig.json
 .venv/
 media/
 *.sql
+.idea/
+get_id.py

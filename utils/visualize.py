@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
@@ -32,7 +31,7 @@ def make_human_readable(df):
 
 
 def to_pdf(
-    title: str, df: DataFrame, period: Dict, figsize: tuple[int, int] = None
+    title: str, df: DataFrame, period: Dict, figsize: Optional[tuple[int, int]] = None
 ) -> tuple[str, str]:
 
     period_str = f"{period['date_from']:%d.%m.%Y} - {period['date_to']:%d.%m.%Y}"

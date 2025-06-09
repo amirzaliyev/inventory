@@ -9,12 +9,12 @@ from aiogram.filters import Command
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import FSInputFile
 
-from data.exceptions import RecordNotFound
+from core import login
 from handlers import dispatch_state
 from keyboards import months_kb
 from resources.dicts import months
-from resources.string import (CALCULATING, NO_RECORDS, SELECT_BRANCH,
-                              SELECT_MONTH, NO_PERMISSION)
+from resources.string import (CALCULATING, NO_PERMISSION, NO_RECORDS,
+                              SELECT_MONTH)
 from utils import push_state_stack
 from utils.visualize import make_df, make_human_readable, to_pdf
 
@@ -37,17 +37,21 @@ class AccountingForm(StatesGroup):
 
 @accounting_router.message(Command("oylik"))
 async def select_branch(
-    message: Message, state: FSMContext, branch_repo: IBranchRepository, user_repo: IUserRepository
+    message: Message,
+    state: FSMContext,
+    branch_repo: IBranchRepository,
+    user_repo: IUserRepository,
 ) -> None:
-    try: # todo authentication model
-        user = user_repo.get_by_id(user_id=message.from_user.id)
+    has_access = await login(message.from_user.id, state=state, user_repo=user_repo)  # type: ignore
+    if has_access:
+        await state.update_data(state_stack=[], salary_form={})
 
         await push_state_stack(state, AccountingForm.branch_id)
 
         text, reply_markup = await dispatch_state(state, branch_repo=branch_repo)
         await message.answer(text=text, reply_markup=reply_markup)
 
-    except RecordNotFound:
+    else:
         await message.answer(text=NO_PERMISSION)
 
 
@@ -89,6 +93,7 @@ async def calculate_salary(
         return
 
     df = make_df(details)
+    df = make_human_readable(df)
     file_path, thumbnail_path = to_pdf(
         title=f"Oylik {branch_id}-seh", df=df, period=period, figsize=(16, 10)
     )

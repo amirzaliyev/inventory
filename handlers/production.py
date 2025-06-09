@@ -110,15 +110,17 @@ async def process_product(
 async def process_quantity(message: Message, state: FSMContext, quantity_re: Match):
     """Processes the quantity of manufactured goods"""
     data = await state.get_data()
-    new_record = data.get('new_record', {})
-    product_name = data.get('product_name', '')
+    new_record = data.get("new_record", {})
+    product_name = data.get("product_name", "")
 
     new_record["quantity"] = int(quantity_re.group(1))
     await state.update_data(new_record=new_record)
 
     await push_state_stack(state, ProductionRecordForm.used_cement_amount)
 
-    await message.answer(text=USED_CEMENT_AMOUNT.format(product_name), reply_markup=back_kb())
+    await message.answer(
+        text=USED_CEMENT_AMOUNT.format(product_name), reply_markup=back_kb()
+    )
 
 
 @production_router.message(
@@ -225,7 +227,8 @@ async def save_to_db(
     prod_record_repo: IProductionRecordRepository,
 ):
     data = await state.get_data()
-    await state.clear()
+    await state.update_data(new_record={}, state_stack=[])
+    await state.set_state()
 
     new_record = data["new_record"]
     present_employees = data["present_employees"]

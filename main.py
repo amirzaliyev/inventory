@@ -9,7 +9,8 @@ from aiogram.enums.parse_mode import ParseMode
 from config import settings
 from core.accounting import Accounting
 from data.db import get_engine, get_sessionmaker
-from data.models import Branch, Employee, Order, Product, ProductionRecord, User
+from data.models import (Branch, Employee, Order, Product, ProductionRecord,
+                         User)
 from data.repositories import (BranchRepository, EmployeeRepository,
                                OrderRepository, ProductionRecordRepository,
                                ProductRepository)
@@ -62,5 +63,5 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    # logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     asyncio.run(main())

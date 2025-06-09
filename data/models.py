@@ -1,20 +1,20 @@
 from datetime import datetime
 from typing import List
 
-from sqlalchemy import (DATE, TIMESTAMP, ForeignKey, String, UniqueConstraint,
-                        text)
+from sqlalchemy import (DATE, TIMESTAMP, ForeignKey, Numeric, String,
+                        UniqueConstraint, text)
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
     created_at: Mapped[str] = mapped_column(
-        TIMESTAMP, default=datetime.now(), server_default=text("current_timestamp")
+        TIMESTAMP, default=datetime.now, server_default=text("current_timestamp")
     )
 
 
 class User(Base):
-    __tablename__ = 'users'
+    __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(BIGINT, primary_key=True, autoincrement=False)
     first_name: Mapped[str] = mapped_column(String(30))
@@ -22,7 +22,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(30), nullable=True)
     phone_number: Mapped[str] = mapped_column(String(25), unique=True)
 
-    branches: Mapped['Branch'] = relationship()
+    branches: Mapped["Branch"] = relationship()
 
 
 class Branch(Base):
@@ -30,7 +30,7 @@ class Branch(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(unique=True)
-    owner_id: Mapped[str] = mapped_column(ForeignKey('users.id'), nullable=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     branch_products: Mapped[List["BranchProduct"]] = relationship()
 
@@ -40,6 +40,10 @@ class Product(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
+
+    rates: Mapped[List["ProductRate"]] = relationship(
+        order_by="desc(ProductRate.effective_date)"
+    )
 
 
 class ProductionRecord(Base):
@@ -108,4 +112,14 @@ class Order(Base):
     )
     quantity: Mapped[int]
     price: Mapped[int]
-    total_amount: Mapped[int]
+    total_amount: Mapped[int] = mapped_column(BIGINT)
+
+
+class ProductRate(Base):
+    __tablename__ = "product_rates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    payment_rate: Mapped[float] = mapped_column(Numeric(10, 2))
+    effective_date: Mapped[str] = mapped_column(DATE)
+    end_date: Mapped[str] = mapped_column(DATE)

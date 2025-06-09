@@ -6,12 +6,14 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 
 from sqlalchemy import func, select
 
-from data.models import Order, Product
+from data.models import Product
 
 if TYPE_CHECKING:
     from datetime import date
 
     from sqlalchemy.orm import Session, sessionmaker
+
+    from data.models import Order
 
 
 class IOrderRepository(ABC):

@@ -24,30 +24,30 @@ class Accounting:
     def statistic(self):
         pass
 
-    def calculate_salary_all(
-        self, period: Dict[str, date], branch_id: Optional[int] = None
-    ):
-        """
-        Calculates salary for given branch and period.
-
-        Params:
-            period: - Dict[str, date]. Example {'date_from': date obj, 'date_to': date obj}
-            branch_id: - Optional[int], can be None
-                if so it will calculate salary for all branch employees for given period
-
-        Returns:
-
-        """
-        result = {}
-
-        if branch_id is not None:
-
-            branch = self._branch_repo.get_by_id(branch_id=branch_id)
-            return
-
-        branch = self._branch_repo.all()
-
-        return
+    # def calculate_salary_all(
+    #     self, period: Dict[str, date], branch_id: Optional[int] = None
+    # ):
+    #     """
+    #     Calculates salary for given branch and period.
+    #
+    #     Params:
+    #         period: - Dict[str, date]. Example {'date_from': date obj, 'date_to': date obj}
+    #         branch_id: - Optional[int], can be None
+    #             if so it will calculate salary for all branch employees for given period
+    #
+    #     Returns:
+    #
+    #     """
+    #     result = {}
+    #
+    #     if branch_id is not None:
+    #
+    #         branch = self._branch_repo.get_by_id(branch_id=branch_id)
+    #         return
+    #
+    #     branch = self._branch_repo.all()
+    #
+    #     return
 
     def calculate_salary(
         self, period: Dict[str, date], branch_id: int
@@ -72,7 +72,8 @@ class Accounting:
 
         for record in records:
             if record.employees:
-                rate = 700
+                rate = float(record.product.rates[0].payment_rate) # parse to float
+
                 total_employees = len(record.employees)
                 employee_share = rate * record.quantity / total_employees
                 data = {

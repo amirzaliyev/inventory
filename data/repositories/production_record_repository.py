@@ -69,7 +69,8 @@ class IProductionRecordRepository(ABC):
         self, date_from: date, date_to: date
     ) -> List[ProductionRecord]:
         """
-        Filters the 'ProductionRecord' by given period
+        Filters the 'ProductionRecord' by given period. 
+        It will eagerly load all collections of that model.
 
         Params:
             date_from: date obj - start of the period (included)
@@ -153,7 +154,7 @@ class ProductionRecordRepository(IProductionRecordRepository):
 
             stmt = stmt.options(
                 selectinload(self._model.employees).selectinload(Attendance.employee),
-                selectinload(self._model.product),
+                selectinload(self._model.product).selectinload(Product.rates),
             ).order_by(
                 self._model.date
             )  # todo fix tight coupling problem

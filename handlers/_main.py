@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart, or_f
 
-from data.exceptions import RecordNotFound
-from data.repositories.user_repository import IUserRepository
+from core import login
 from handlers.forms import ProductionRecordForm, SalesOrderForm, dispatch_state
 from keyboards import current_action_kb
-from resources.string import BACK, CANCELLED_BACK_TO_START, WELCOME_TEXT, NO_PERMISSION
+from resources.string import (BACK, CANCELLED_BACK_TO_START, NO_PERMISSION,
+                              WELCOME_TEXT)
 from utils.state_stack import get_last_state, push_state_stack
 
 if TYPE_CHECKING:
@@ -19,20 +19,25 @@ if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
     from aiogram.types import CallbackQuery, Message
 
-    from data.repositories import IBranchRepository, IEmployeeRepository
+    from data.repositories import (IBranchRepository, IEmployeeRepository,
+                                   IUserRepository)
 
 main_router = Router(name="main")
 
 
 @main_router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext, user_repo: IUserRepository) -> None:
-    user_id = message.from_user.id
-    try: # todo create authentication model
-        user = user_repo.get_by_id(user_id=user_id)
-        await message.answer(WELCOME_TEXT, reply_markup=current_action_kb())
-        await state.clear()
+async def cmd_start(
+    message: Message, state: FSMContext, user_repo: IUserRepository
+) -> None:
+    has_access = await login(message.from_user.id, state=state, user_repo=user_repo)  # type: ignore
 
-    except RecordNotFound:
+    await state.set_state()
+    await state.update_data(state_stack=[], new_order={})
+    if has_access:
+
+        await message.answer(WELCOME_TEXT, reply_markup=current_action_kb())
+
+    else:
         await message.answer(NO_PERMISSION)
 
 
@@ -61,6 +66,7 @@ async def cancel(
     state: FSMContext,
     branch_repo: IBranchRepository,
     emp_repo: IEmployeeRepository,
+    user_repo: IUserRepository,
 ) -> None:
     last_state = await get_last_state(state=state)
 
@@ -76,4 +82,4 @@ async def cancel(
         await asyncio.sleep(0.75)
         await msg.delete()  # type: ignore
 
-        await cmd_start(message=callback.message, state=state)
+        await cmd_start(message=callback.message, state=state, user_repo=user_repo)

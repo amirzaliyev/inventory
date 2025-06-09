@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from aiogram.types import InlineKeyboardMarkup
+from typing import TYPE_CHECKING
 
 from resources.string import CALLBACK_DATA, PRODUCTION, SALES, TEXT
 from utils import make_inline_kb
+
+if TYPE_CHECKING:
+    from aiogram.types import InlineKeyboardMarkup
 
 
 def current_action_kb() -> InlineKeyboardMarkup:
