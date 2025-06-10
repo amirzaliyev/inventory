@@ -17,6 +17,8 @@ from data.repositories import (BranchRepository, EmployeeRepository,
 from data.repositories.user_repository import UserRepository
 from handlers import (accounting_router, main_router, production_router,
                       sales_router, stat_router, unhandled_router)
+from handlers.common import switch
+from utils import StateManager
 
 
 async def main() -> None:
@@ -43,6 +45,15 @@ async def main() -> None:
     product_repo = ProductRepository(session=sessionmaker_factory, model=Product)
     order_repo = OrderRepository(session=sessionmaker_factory, model=Order)
     user_repo = UserRepository(session=sessionmaker_factory, model=User)
+    state_mgr = StateManager(
+        prod_record_repo=prod_record_repo,
+        emp_repo=emp_repo,
+        branch_repo=branch_repo,
+        product_repo=product_repo,
+        order_repo=order_repo,
+        user_repo=user_repo,
+    )
+    state_mgr.include_switch(switch=switch)
 
     accounting = Accounting(
         branch_repo=branch_repo,
@@ -59,9 +70,10 @@ async def main() -> None:
         order_repo=order_repo,
         user_repo=user_repo,
         accounting=accounting,
+        state_mgr=state_mgr,
     )
 
 
 if __name__ == "__main__":
-    # logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     asyncio.run(main())

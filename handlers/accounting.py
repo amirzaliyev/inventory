@@ -10,13 +10,14 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import FSInputFile
 
 from core import login
-from handlers import dispatch_state
 from keyboards import months_kb
 from resources.dicts import months
 from resources.string import (CALCULATING, NO_PERMISSION, NO_RECORDS,
                               SELECT_MONTH)
 from utils import push_state_stack
 from utils.visualize import make_df, make_human_readable, to_pdf
+
+from .forms import dispatch_state
 
 if TYPE_CHECKING:
     from re import Match

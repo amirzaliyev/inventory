@@ -1,10 +1,12 @@
-.env
+.idea/
 alembic/
 alembic.ini
 __pycache__/
-pyrightconfig.json
 .venv/
 media/
+.env
 *.sql
-.idea/
 get_id.py
+pyrightconfig.json
+decorators.py
+

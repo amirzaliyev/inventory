@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-if TYPE_CHECKING:
-    from aiogram.fsm.context import FSMContext
-    from aiogram.fsm.state import State
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State
 
 
 async def push_state_stack(state: FSMContext, next_state: State) -> None:
@@ -17,6 +16,16 @@ async def push_state_stack(state: FSMContext, next_state: State) -> None:
 
     Returns
     """
+    if not isinstance(state, FSMContext):
+        raise TypeError(
+            f"state should be instance of 'FSMContext' not {type(state).__name__}"
+        )
+
+    if not isinstance(next_state, State):
+        raise TypeError(
+            f"next_state should be an instance of 'State' not {type(next_state).__name__}"
+        )
+
     stack = await state.get_value("state_stack", [])
 
     current_state = await state.get_state()
@@ -31,13 +40,15 @@ async def push_state_stack(state: FSMContext, next_state: State) -> None:
 
 async def get_last_state(state: FSMContext) -> Optional[State]:
     """
-    Returns last state.
+    Retrieves the last state.
 
     Params
         state: FSMContext object
 
-    Raises
-        IndexError if there is state available
+    Returns
+        State object
+
+    If there is no state, return None
     """
     stack = await state.get_value("state_stack", [])
 

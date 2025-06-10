@@ -94,7 +94,7 @@ async def show_report(
         col_order.append("total_amount")
         headers.append("Summa")
 
-    df = make_df(data=result, col_order=col_order, column_names=headers)
+    df = make_df(data=result, col_order=col_order, column_names=headers, sort_by="Soni")
 
     if activity == "sales":
 

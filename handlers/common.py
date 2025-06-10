@@ -2,20 +2,38 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from keyboards import back_kb, products_kb, select_date_kb
-from keyboards.production import branches_kb
-from resources.string import (SELECT_BRANCH, SELECT_DATE, SELECT_PRODUCT,
-                              SOLD_PRODUCT_QUANTITY)
+from core.authentication import login
+from keyboards import (back_kb, branches_kb, current_action_kb, products_kb,
+                       select_date_kb)
+from resources.string import (NO_PERMISSION, SELECT_BRANCH, SELECT_DATE,
+                              SELECT_PRODUCT, SOLD_PRODUCT_QUANTITY,
+                              WELCOME_TEXT)
+from utils.state_manager import Switch
 
 if TYPE_CHECKING:
-    from re import Match
-
     from aiogram.fsm.context import FSMContext
-    from aiogram.types import CallbackQuery, Message
+    from aiogram.types import Message
 
-    from data.repositories import IBranchRepository, IProductRepository
+    from data.repositories import (IBranchRepository, IProductRepository,
+                                   IUserRepository)
+
+switch = Switch()
 
 
+@switch.register("start")
+async def cmd_start(
+    message: Message, state: FSMContext, user_repo: IUserRepository
+) -> None:
+
+    has_access = await login(message.from_user.id, state=state, user_repo=user_repo)  # type: ignore
+    if has_access:
+        await message.answer(WELCOME_TEXT, reply_markup=current_action_kb())
+
+    else:
+        await message.answer(NO_PERMISSION)
+
+
+@switch.register("branch_id")
 async def show_branches(
     message: Message, branch_repo: IBranchRepository, edit_msg: bool = True
 ) -> None:
@@ -30,6 +48,7 @@ async def show_branches(
         )
 
 
+@switch.register("date")
 async def select_date(message: Message, edit_msg: bool = True):
     """Processes the selected branch and shows its product line"""
     if edit_msg is True:
@@ -39,6 +58,7 @@ async def select_date(message: Message, edit_msg: bool = True):
         await message.answer(text=SELECT_DATE, reply_markup=await select_date_kb())
 
 
+@switch.register("product_id")
 async def show_products(
     message: Message,
     state: FSMContext,
@@ -62,15 +82,25 @@ async def show_products(
         )
 
 
+@switch.register("quantity")
 async def get_quantity(
-    callback: CallbackQuery,
+    message: Message,
     state: FSMContext,
-    product_id_re: Match,
     product_repo: IProductRepository,
+    edit_msg: bool = True,
 ):
-    product_id = int(product_id_re.group(1))
+    new_record = await state.get_value("new_record", {})
+    product_id = new_record["product_id"]
     product_name = product_repo.get_by_id(product_id=product_id).name
 
-    await callback.message.edit_text(  # type: ignore
-        text=SOLD_PRODUCT_QUANTITY.format(product_name), reply_markup=back_kb()
-    )
+    await state.update_data(product_name=product_name)
+
+    if edit_msg is True:
+        await message.edit_text(
+            text=SOLD_PRODUCT_QUANTITY.format(product_name), reply_markup=back_kb()
+        )
+
+    else:
+        await message.answer(
+            text=SOLD_PRODUCT_QUANTITY.format(product_name), reply_markup=back_kb()
+        )

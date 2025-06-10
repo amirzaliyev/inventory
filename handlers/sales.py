@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import callback_query
 from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
 
 from data.models import Order
@@ -15,6 +16,7 @@ from handlers.notifications import send_message_to_admin
 from keyboards import back_kb, save_kb
 from resources.string import SAVE, SOLD_PRODUCT_PRICE, SUCCESSFULLY_SAVED
 from utils import push_state_stack
+from utils.state_manager import StateManager
 
 if TYPE_CHECKING:
     from aiogram import Bot
@@ -30,16 +32,18 @@ sales_router = Router(name="sales")
 @sales_router.callback_query(
     SalesOrderForm.branch_id, F.data.regexp(r"^branch_(\d+)$").as_("branch_id_re")
 )
-async def select_date(callback: CallbackQuery, state: FSMContext, branch_id_re: Match):
-    await push_state_stack(state, SalesOrderForm.date)
+async def select_date(
+    callback: CallbackQuery,
+    state: FSMContext,
+    branch_id_re: Match,
+    state_mgr: StateManager,
+):
+    await state_mgr.push_state_stack(state, SalesOrderForm.date)
     new_record = {"branch_id": int(branch_id_re.group(1))}
 
     await state.update_data(new_record=new_record)
 
-    text, reply_markup = await dispatch_state(state=state)
-    await callback.message.edit_text(  # type: ignore
-        text=text, reply_markup=reply_markup
-    )
+    await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
 
 
 @sales_router.callback_query(SalesOrderForm.date, SimpleCalendarCallback.filter())
@@ -48,6 +52,7 @@ async def show_products(
     state: FSMContext,
     callback_data: SimpleCalendarCallback,
     branch_repo: IBranchRepository,
+    state_mgr: StateManager,
 ):
 
     selected, date = await SimpleCalendar().process_selection(callback, callback_data)
@@ -57,12 +62,9 @@ async def show_products(
         new_record["date"] = date.strftime("%Y-%m-%d")
         await state.update_data(new_record=new_record)
 
-        await push_state_stack(state, SalesOrderForm.product_id)
+        await state_mgr.push_state_stack(state, SalesOrderForm.product_id)
 
-        text, reply_markup = await dispatch_state(state, branch_repo=branch_repo)
-        await callback.message.edit_text(  # type: ignore
-            text=text, reply_markup=reply_markup
-        )
+        await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
 
 
 @sales_router.callback_query(
@@ -73,8 +75,8 @@ async def get_quantity(
     state: FSMContext,
     product_id_re: Match,
     product_repo: IProductRepository,
+    state_mgr: StateManager,
 ) -> None:
-    await push_state_stack(state, SalesOrderForm.quantity)
 
     new_record = await state.get_value("new_record", {})
     product_id = int(product_id_re.group(1))
@@ -84,26 +86,28 @@ async def get_quantity(
 
     await state.update_data(new_record=new_record, product_name=product_name)
 
-    text, reply_markup = await dispatch_state(state)
-    await callback.message.edit_text(  # type: ignore
-        text=text, reply_markup=reply_markup
-    )
+    await state_mgr.push_state_stack(state, SalesOrderForm.quantity)
+
+    await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
 
 
 @sales_router.message(
     SalesOrderForm.quantity, F.text.regexp(r"^(\d+)$").as_("quantity_re")
 )
-async def get_price(message: Message, state: FSMContext, quantity_re: Match) -> None:
-    await push_state_stack(state, SalesOrderForm.price)
+async def get_price(
+    message: Message, state: FSMContext, quantity_re: Match, state_mgr: StateManager
+) -> None:
 
     data = await state.get_data()
-
     new_record = data["new_record"]
     product_name = data["product_name"]
 
     new_record["quantity"] = int(quantity_re.group(1))
-    await state.update_data(new_record=new_record)
 
+    await state.update_data(new_record=new_record)
+    await state_mgr.push_state_stack(state, SalesOrderForm.price)
+
+    # await state_mgr.dispatch_query(message=message, state=state)  # type: ignore
     await message.answer(
         text=SOLD_PRODUCT_PRICE.format(product_name), reply_markup=back_kb()
     )
@@ -116,8 +120,9 @@ async def show_summary(
     price_re: Match,
     branch_repo: IBranchRepository,
     product_repo: IProductRepository,
+    state_mgr: StateManager,
 ) -> None:
-    await push_state_stack(state, SalesOrderForm.save)
+    await state_mgr.push_state_stack(state, SalesOrderForm.save)
 
     new_record = await state.get_value("new_record", {})
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from decimal import Decimal
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
@@ -14,6 +15,7 @@ def make_df(
     data: Iterable,
     col_order: Optional[List[str]] = None,
     column_names: Optional[List[str]] = None,
+    sort_by: Optional[str] = None,
 ) -> DataFrame:
     df = DataFrame(data)
 
@@ -23,11 +25,14 @@ def make_df(
     if column_names:
         df.columns = column_names
 
+    if sort_by:
+        df.sort_values(by=sort_by, ascending=False, inplace=True)
+
     return df  # type: ignore
 
 
 def make_human_readable(df):
-    return df.map(lambda x: f"{x:,}" if isinstance(x, (int, float)) else x)  # type: ignore
+    return df.map(lambda x: f"{x:,}" if isinstance(x, (int, float, Decimal)) else x)  # type: ignore
 
 
 def to_pdf(
