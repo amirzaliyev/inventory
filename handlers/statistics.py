@@ -7,11 +7,10 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import FSInputFile
 
-from core import login
-from keyboards import current_action_kb, stat_period_kb
-from resources.string import (NO_PERMISSION, PREPARING_REPORT, REPORT_READY,
-                              SELECT_PERIOD, TOTAL, WELCOME_TEXT)
-from utils import push_state_stack
+from keyboards import stat_period_kb
+from resources.string import (PREPARING_REPORT, REPORT_READY, SELECT_PERIOD,
+                              TOTAL)
+from utils.state_manager import StateManager
 from utils.stats import get_period
 from utils.visualize import make_df, make_human_readable, to_pdf
 
@@ -23,26 +22,20 @@ if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
     from aiogram.types import CallbackQuery, Message
 
-    from data.repositories import (IOrderRepository,
-                                   IProductionRecordRepository,
-                                   IUserRepository)
+    from data.repositories import IOrderRepository, IProductionRecordRepository
 
 stat_router = Router(name="statistics")
 
 
 @stat_router.message(Command("stats"))
 async def select_activity(
-    message: Message, state: FSMContext, user_repo: IUserRepository
+    message: Message,
+    state: FSMContext,
+    state_mgr: StateManager,
 ) -> None:
-    has_access = await login(message.from_user.id, state=state, user_repo=user_repo)  # type: ignore
-    if has_access:
-        await state.update_data(state_stack=[])
-        await push_state_stack(state, StatisticsForm.activity)
-
-        await message.answer(text=WELCOME_TEXT, reply_markup=current_action_kb())
-
-    else:
-        await message.answer(text=NO_PERMISSION)
+    await state.update_data(state_stack=[])
+    await state_mgr.push_state_stack(state, StatisticsForm.activity)
+    await state_mgr.dispatch_query(message=message, state=state)
 
 
 @stat_router.callback_query(
@@ -52,19 +45,18 @@ async def select_period(
     callback: CallbackQuery,
     state: FSMContext,
     activity_re: Match,
+    state_mgr: StateManager,
 ) -> None:
     activity = activity_re.group(1)
     await state.update_data(activity=activity)
 
-    await push_state_stack(state, StatisticsForm.period)
+    await state_mgr.push_state_stack(state, StatisticsForm.stat_period)
+    await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
 
-    await callback.message.edit_text(  # type: ignore
-        text=SELECT_PERIOD, reply_markup=stat_period_kb()
-    )
 
 
 @stat_router.callback_query(
-    StatisticsForm.period, F.data.regexp(r"period_(\w+)").as_("period_re")
+    StatisticsForm.stat_period, F.data.regexp(r"period_(\w+)").as_("period_re")
 )
 async def show_report(
     callback: CallbackQuery,

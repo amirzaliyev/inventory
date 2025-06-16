@@ -17,7 +17,7 @@ from data.repositories import (BranchRepository, EmployeeRepository,
 from data.repositories.user_repository import UserRepository
 from handlers import (accounting_router, main_router, production_router,
                       sales_router, stat_router, unhandled_router)
-from handlers.common import switch
+from query_handlers import switch
 from utils import StateManager
 
 

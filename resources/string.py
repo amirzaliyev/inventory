@@ -10,10 +10,7 @@ SALES = "Sotuv"
 SELECT_BRANCH = "Quyidagi bo'limlardan birini tanlang"
 SELECT_DATE = "Sanani tanlang (today - bugun)"
 SELECT_PRODUCT = "Quyidagi mahsulotlardan birini mahsulotni tanlang"
-MANUFACTURED_PRODUCT_QUANTITY = (
-    "Mahsulotning sonini kiriting <blockquote>{}</blockquote>"
-)
-SOLD_PRODUCT_QUANTITY = "Sotilgan mahsulot sonini kiriting <blockquote>{}</blockquote>"
+PRODUCT_QUANTITY = "Mahsulot sonini kiriting <blockquote>{}</blockquote>"
 SOLD_PRODUCT_PRICE = "Sotilgan mahsulot narxini kiriting <blockquote>{}</blockquote>"
 USED_CEMENT_AMOUNT = (
     "Ishlatilgan sement miqdorini kiriting (kilogrammda) <blockquote>{}</blockquote>"

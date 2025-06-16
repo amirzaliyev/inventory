@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State
 from aiogram.types import Message
@@ -98,6 +99,12 @@ class StateManager(Switch):
             raise TypeError(
                 f"state should be an instance of 'FSMContext', got {type(state).__name__}"
             )
+
+        if not isinstance(message, Message):
+            raise TypeError(
+                f"message should be an instance of 'Message', got {type(message).__name__}"
+            )
+
         last_state = await self._get_last_state(state=state)
 
         await state.set_state(last_state)
@@ -113,7 +120,12 @@ class StateManager(Switch):
             )
         self.handlers.update(**switch.handlers)
 
-    async def dispatch_query(self, message: Message, state: FSMContext) -> None:
+    async def dispatch_query(
+        self,
+        message: Message,
+        state: FSMContext,
+        edit_msg: bool = True,
+    ) -> None:
         """
         whatever
         """
@@ -127,12 +139,23 @@ class StateManager(Switch):
             )
 
         current = await state.get_state()
-        handler_key = "start"
+        handler_key = "activity"
         if current is not None:
             handler_key = current.split(":")[-1]  # type: ignore
 
         handler = self.handlers[handler_key]
         args = inspect.getfullargspec(handler).args
-        self.kwargs.update(state=state, message=message)
+        self.kwargs.update(state=state, message=message, edit_msg=edit_msg)
         params = {k: self.kwargs[k] for k in args if k in self.kwargs}
-        await handler(**params)
+
+        text, reply_markup = await handler(**params)
+
+        if edit_msg is True:
+            try:
+                await message.edit_text(text=text, reply_markup=reply_markup)
+                return
+
+            except TelegramBadRequest:
+                pass
+
+        await message.answer(text=text, reply_markup=reply_markup)

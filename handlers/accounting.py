@@ -9,15 +9,10 @@ from aiogram.filters import Command
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import FSInputFile
 
-from core import login
-from keyboards import months_kb
 from resources.dicts import months
-from resources.string import (CALCULATING, NO_PERMISSION, NO_RECORDS,
-                              SELECT_MONTH)
-from utils import push_state_stack
+from resources.string import CALCULATING, NO_RECORDS
+from utils.state_manager import StateManager
 from utils.visualize import make_df, make_human_readable, to_pdf
-
-from .forms import dispatch_state
 
 if TYPE_CHECKING:
     from re import Match
@@ -26,7 +21,6 @@ if TYPE_CHECKING:
     from aiogram.types import CallbackQuery, Message
 
     from core.accounting import Accounting
-    from data.repositories import IBranchRepository, IUserRepository
 
 accounting_router = Router(name="accounting")
 
@@ -40,34 +34,30 @@ class AccountingForm(StatesGroup):
 async def select_branch(
     message: Message,
     state: FSMContext,
-    branch_repo: IBranchRepository,
-    user_repo: IUserRepository,
+    state_mgr: StateManager,
 ) -> None:
-    has_access = await login(message.from_user.id, state=state, user_repo=user_repo)  # type: ignore
-    if has_access:
-        await state.update_data(state_stack=[], salary_form={})
+    await state.update_data(state_stack=[], salary_form={})
 
-        await push_state_stack(state, AccountingForm.branch_id)
+    await state_mgr.push_state_stack(state, AccountingForm.branch_id)
 
-        text, reply_markup = await dispatch_state(state, branch_repo=branch_repo)
-        await message.answer(text=text, reply_markup=reply_markup)
-
-    else:
-        await message.answer(text=NO_PERMISSION)
+    await state_mgr.dispatch_query(message=message, state=state)
 
 
 @accounting_router.callback_query(
     AccountingForm.branch_id, F.data.regexp(r"branch_(\d+)").as_("branch_id_re")
-)  # todo change it just change it
+)
 async def select_month(
-    callback: CallbackQuery, state: FSMContext, branch_id_re: Match
+    callback: CallbackQuery,
+    state: FSMContext,
+    branch_id_re: Match,
+    state_mgr: StateManager,
 ) -> None:
-    await push_state_stack(state, AccountingForm.period)
+    await state_mgr.push_state_stack(state, AccountingForm.period)
 
     salary_form = {"branch_id": int(branch_id_re.group(1))}
     await state.update_data(salary_form=salary_form)
 
-    await callback.message.edit_text(text=SELECT_MONTH, reply_markup=months_kb())  # type: ignore
+    await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
 
 
 @accounting_router.callback_query(
@@ -124,3 +114,5 @@ async def calculate_salary(
         document=sum_file, thumbnail=sum_thumbnail
     )
     await msg.delete()  # type: ignore
+    await state.set_state()
+    await state.update_data(salary_form={})

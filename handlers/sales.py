@@ -6,16 +6,13 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import callback_query
 from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
 
 from data.models import Order
-from handlers import dispatch_state
 from handlers.forms import SalesOrderForm
 from handlers.notifications import send_message_to_admin
-from keyboards import back_kb, save_kb
-from resources.string import SAVE, SOLD_PRODUCT_PRICE, SUCCESSFULLY_SAVED
-from utils import push_state_stack
+from keyboards import save_kb
+from resources.string import SAVE, SUCCESSFULLY_SAVED
 from utils.state_manager import StateManager
 
 if TYPE_CHECKING:
@@ -51,7 +48,6 @@ async def show_products(
     callback: CallbackQuery,
     state: FSMContext,
     callback_data: SimpleCalendarCallback,
-    branch_repo: IBranchRepository,
     state_mgr: StateManager,
 ):
 
@@ -100,17 +96,13 @@ async def get_price(
 
     data = await state.get_data()
     new_record = data["new_record"]
-    product_name = data["product_name"]
 
     new_record["quantity"] = int(quantity_re.group(1))
 
     await state.update_data(new_record=new_record)
     await state_mgr.push_state_stack(state, SalesOrderForm.price)
 
-    # await state_mgr.dispatch_query(message=message, state=state)  # type: ignore
-    await message.answer(
-        text=SOLD_PRODUCT_PRICE.format(product_name), reply_markup=back_kb()
-    )
+    await state_mgr.dispatch_query(message=message, state=state, edit_msg=False)  # type: ignore
 
 
 @sales_router.message(SalesOrderForm.price, F.text.regexp(r"^(\d+)$").as_("price_re"))

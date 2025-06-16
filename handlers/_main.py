@@ -25,8 +25,8 @@ async def cmd_start(
 ) -> None:
 
     await state.set_state()
-    await state.update_data(state_stack=[], new_order={})
-    await state_mgr.dispatch_query(message=message, state=state)
+    await state.update_data(state_stack=[], new_order={}, salary_form={})
+    await state_mgr.dispatch_query(message=message, state=state, edit_msg=False)
 
 
 @main_router.callback_query(F.data.regexp(r"activity_(\w+)").as_("activity_re"))
