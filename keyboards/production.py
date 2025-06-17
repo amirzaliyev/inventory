@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Set
 from aiogram_calendar import SimpleCalendar
 
 from keyboards.common import back_kb
-from resources.string import CALLBACK_DATA, READY, SAVE, TEXT
+from resources.string import ADD_PRODUCT, CALLBACK_DATA, READY, SAVE, TEXT
 from utils.keyboard import make_inline_kb
 
 if TYPE_CHECKING:
@@ -46,7 +46,7 @@ def products_kb(products: List[Dict[str, Any]]) -> InlineKeyboardMarkup:
         btn[CALLBACK_DATA] = f"product_{product["id"]}"
         buttons.append(btn)
 
-    return make_inline_kb(buttons, back_btn=True, resize=True)
+    return make_inline_kb(buttons, back_btn=True, size=[2], resize=False)
 
 
 def workers_on_duty_kb(
@@ -72,7 +72,7 @@ def workers_on_duty_kb(
     return make_inline_kb(buttons=buttons, size=[2], back_btn=True)
 
 
-def save_kb() -> InlineKeyboardMarkup:
+def save_kb(add_extra: bool = False) -> InlineKeyboardMarkup:
     buttons = [
         {
             TEXT: SAVE,
@@ -80,4 +80,12 @@ def save_kb() -> InlineKeyboardMarkup:
         }
     ]
 
-    return make_inline_kb(buttons=buttons, back_btn=True)
+    if add_extra is True:
+        buttons.append(
+            {
+                TEXT: ADD_PRODUCT,
+                CALLBACK_DATA: ADD_PRODUCT,
+            }
+        )
+
+    return make_inline_kb(buttons=buttons, back_btn=True, size=[1])

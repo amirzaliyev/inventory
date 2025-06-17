@@ -9,7 +9,9 @@ PRODUCTION = "Ishlab chiqarish"
 SALES = "Sotuv"
 SELECT_BRANCH = "Quyidagi bo'limlardan birini tanlang"
 SELECT_DATE = "Sanani tanlang (today - bugun)"
-SELECT_PRODUCT = "Quyidagi mahsulotlardan birini mahsulotni tanlang"
+SELECT_PRODUCT = (
+    "Quyidagi mahsulotlardan birini mahsulotni tanlang <blockquote>{}</blockquote>"
+)
 PRODUCT_QUANTITY = "Mahsulot sonini kiriting <blockquote>{}</blockquote>"
 SOLD_PRODUCT_PRICE = "Sotilgan mahsulot narxini kiriting <blockquote>{}</blockquote>"
 USED_CEMENT_AMOUNT = (
@@ -46,3 +48,4 @@ INVALID_RESPONSE = (
     "Kiritilgan ma'lumot noto'g'ri. \nIltimos qaytadan tekshirib ko'ring."
 )
 TOTAL = "Jami"
+ADD_PRODUCT = "Yana mahsulot qo'shish"

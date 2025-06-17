@@ -5,14 +5,17 @@ from re import Match
 from typing import TYPE_CHECKING, Any, Dict
 
 from aiogram import F, Router
+from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.fsm.context import FSMContext
+from aiogram.types import callback_query
 from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
+from matplotlib.pyplot import cla
 
 from data.models import Order
 from handlers.forms import SalesOrderForm
 from handlers.notifications import send_message_to_admin
 from keyboards import save_kb
-from resources.string import SAVE, SUCCESSFULLY_SAVED
+from resources.string import ADD_PRODUCT, SAVE, SUCCESSFULLY_SAVED
 from utils.state_manager import StateManager
 
 if TYPE_CHECKING:
@@ -70,17 +73,15 @@ async def get_quantity(
     callback: CallbackQuery,
     state: FSMContext,
     product_id_re: Match,
-    product_repo: IProductRepository,
     state_mgr: StateManager,
 ) -> None:
 
     new_record = await state.get_value("new_record", {})
     product_id = int(product_id_re.group(1))
-    product_name = product_repo.get_by_id(product_id=product_id).name
 
     new_record["product_id"] = product_id
 
-    await state.update_data(new_record=new_record, product_name=product_name)
+    await state.update_data(new_record=new_record)
 
     await state_mgr.push_state_stack(state, SalesOrderForm.quantity)
 
@@ -127,19 +128,26 @@ async def show_summary(
     )
     await state.update_data(new_record=new_record, message=summary_msg)
 
-    await message.answer(summary_msg, reply_markup=save_kb())
+    await message.answer(summary_msg, reply_markup=save_kb(add_extra=True))
 
 
 @sales_router.callback_query(SalesOrderForm.save, F.data == SAVE)
 async def save_to_db(
     callback: CallbackQuery, bot: Bot, state: FSMContext, order_repo: IOrderRepository
 ) -> None:
-    new_record = await state.get_value("new_record", {})
+    data = await state.get_data()
+    new_record = data.get("new_record", {})
+    orders = data.get("orders", [])
     message = await state.get_value("message", "")
-    await state.update_data(new_record={}, state_stack=[])
+    # await state.update_data(new_record={}, state_stack=[])
     await state.set_state()
 
     # Save to db
+    if orders:
+        for order in orders:
+            _save_to_db(new_record=order, order_repo=order_repo)
+            await send_message_to_admin(bot=bot, context=message)
+
     _save_to_db(new_record=new_record, order_repo=order_repo)
     await send_message_to_admin(bot=bot, context=message)
 
@@ -151,6 +159,22 @@ def _save_to_db(new_record: Dict[str, Any], order_repo: IOrderRepository) -> Non
     new_order = Order(**new_record)
 
     order_repo.create_new(new_order)
+
+
+@sales_router.callback_query(SalesOrderForm.save, F.data == ADD_PRODUCT)
+async def add_more(
+    callback: CallbackQuery, state: FSMContext, state_mgr: StateManager
+) -> None:
+    data = await state.get_data()
+    orders = data.get("orders", [])
+    print(orders)
+    new_record = data.get("new_record", {})
+    orders.append(new_record)
+    print(orders)
+
+    await state.update_data(orders=orders)
+    await state_mgr.push_state_stack(state, SalesOrderForm.product_id)
+    await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
 
 
 def new_record_details(

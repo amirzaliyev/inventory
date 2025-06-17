@@ -20,6 +20,7 @@ class SalesOrderForm(StatesGroup):
     quantity = State()
     price = State()
     save = State()
+    add_extra = State()
 
 
 class StatisticsForm(StatesGroup):

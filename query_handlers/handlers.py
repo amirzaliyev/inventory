@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from core.authentication import login
+from data.exceptions import RecordNotFound
 from keyboards import (back_kb, branches_kb, current_action_kb, products_kb,
                        select_date_kb)
 from keyboards.accounting import months_kb
@@ -66,10 +67,16 @@ async def show_products(
 
     branch_id = new_record["branch_id"]
 
+    try:
+        branch_name = branch_repo.get_by_id(branch_id=branch_id).name
+
+    except RecordNotFound:
+        branch_name = ""
+
     # load product from database
     products = branch_repo.get_branch_products(branch_id=branch_id)
 
-    return SELECT_PRODUCT, products_kb(products=products)
+    return SELECT_PRODUCT.format(branch_name), products_kb(products=products)
 
 
 @switch.register("quantity")
