@@ -5,14 +5,13 @@ from re import Match
 from typing import TYPE_CHECKING, Any, Dict
 
 from aiogram import F, Router
-from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.fsm.context import FSMContext
-from aiogram.types import callback_query
 from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
-from matplotlib.pyplot import cla
 
 from data.models import Order
 from handlers.forms import SalesOrderForm
+from handlers.generic import handler_registry
+from handlers.handler_manager.handler_manager import HandlerManager
 from handlers.notifications import send_message_to_admin
 from keyboards import save_kb
 from resources.string import ADD_PRODUCT, SAVE, SUCCESSFULLY_SAVED
@@ -28,82 +27,45 @@ if TYPE_CHECKING:
 
 sales_router = Router(name="sales")
 
+SALESORDERFORM = [
+    {
+        "var_name": "branch_id",
+        "handler": "int_regex_cb",
+        "next_state": SalesOrderForm.date,
+        "filters": (
+            SalesOrderForm.branch_id,
+            F.data.regexp(r"branch_(\d+)").as_("regex_res"),
+        ),
+    },
+    {
+        "var_name": "date",
+        "handler": "date_picker",
+        "next_state": SalesOrderForm.product_id,
+        "filters": (SalesOrderForm.date, SimpleCalendarCallback.filter()),
+    },
+    {
+        "var_name": "product_id",
+        "handler": "int_regex_cb",
+        "next_state": SalesOrderForm.quantity,
+        "filters": (
+            SalesOrderForm.product_id,
+            F.data.regexp(r"product_(\d+)").as_("regex_res"),
+        ),
+    },
+    {
+        "var_name": "quantity",
+        "handler": "int_regex_msg",
+        "next_state": SalesOrderForm.price,
+        "filters": (
+            SalesOrderForm.quantity,
+            F.text.regexp(r"^(\d+)$").as_("regex_res"),
+        ),
+    },
+]
 
-@sales_router.callback_query(
-    SalesOrderForm.branch_id, F.data.regexp(r"^branch_(\d+)$").as_("branch_id_re")
-)
-async def select_date(
-    callback: CallbackQuery,
-    state: FSMContext,
-    branch_id_re: Match,
-    state_mgr: StateManager,
-):
-    await state_mgr.push_state_stack(state, SalesOrderForm.date)
-    new_record = {"branch_id": int(branch_id_re.group(1))}
-
-    await state.update_data(new_record=new_record)
-
-    await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
-
-
-@sales_router.callback_query(SalesOrderForm.date, SimpleCalendarCallback.filter())
-async def show_products(
-    callback: CallbackQuery,
-    state: FSMContext,
-    callback_data: SimpleCalendarCallback,
-    state_mgr: StateManager,
-):
-
-    selected, date = await SimpleCalendar().process_selection(callback, callback_data)
-
-    if selected:
-        new_record = await state.get_value("new_record", {})
-        new_record["date"] = date.strftime("%Y-%m-%d")
-        await state.update_data(new_record=new_record)
-
-        await state_mgr.push_state_stack(state, SalesOrderForm.product_id)
-
-        await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
-
-
-@sales_router.callback_query(
-    SalesOrderForm.product_id, F.data.regexp(r"^product_(\d+)$").as_("product_id_re")
-)
-async def get_quantity(
-    callback: CallbackQuery,
-    state: FSMContext,
-    product_id_re: Match,
-    state_mgr: StateManager,
-) -> None:
-
-    new_record = await state.get_value("new_record", {})
-    product_id = int(product_id_re.group(1))
-
-    new_record["product_id"] = product_id
-
-    await state.update_data(new_record=new_record)
-
-    await state_mgr.push_state_stack(state, SalesOrderForm.quantity)
-
-    await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
-
-
-@sales_router.message(
-    SalesOrderForm.quantity, F.text.regexp(r"^(\d+)$").as_("quantity_re")
-)
-async def get_price(
-    message: Message, state: FSMContext, quantity_re: Match, state_mgr: StateManager
-) -> None:
-
-    data = await state.get_data()
-    new_record = data["new_record"]
-
-    new_record["quantity"] = int(quantity_re.group(1))
-
-    await state.update_data(new_record=new_record)
-    await state_mgr.push_state_stack(state, SalesOrderForm.price)
-
-    await state_mgr.dispatch_query(message=message, state=state, edit_msg=False)  # type: ignore
+_handler_mgr = HandlerManager(router=sales_router)
+_handler_mgr.include_registry(handler_registry)
+_handler_mgr.create_handlers(form=SALESORDERFORM)
 
 
 @sales_router.message(SalesOrderForm.price, F.text.regexp(r"^(\d+)$").as_("price_re"))
@@ -117,16 +79,16 @@ async def show_summary(
 ) -> None:
     await state_mgr.push_state_stack(state, SalesOrderForm.save)
 
-    new_record = await state.get_value("new_record", {})
+    form_data = await state.get_value("form_data", {})
 
     price = int(price_re.group(1))
-    new_record["price"] = price
-    new_record["total_amount"] = price * new_record["quantity"]
+    form_data["price"] = price
+    form_data["total_amount"] = price * form_data["quantity"]
 
     summary_msg = new_record_details(
-        new_record=new_record, branch_repo=branch_repo, product_repo=product_repo
+        new_record=form_data, branch_repo=branch_repo, product_repo=product_repo
     )
-    await state.update_data(new_record=new_record, message=summary_msg)
+    await state.update_data(form_data=form_data, message=summary_msg)
 
     await message.answer(summary_msg, reply_markup=save_kb(add_extra=True))
 
@@ -136,10 +98,10 @@ async def save_to_db(
     callback: CallbackQuery, bot: Bot, state: FSMContext, order_repo: IOrderRepository
 ) -> None:
     data = await state.get_data()
-    new_record = data.get("new_record", {})
+    form_data = data.get("form_data", {})
     orders = data.get("orders", [])
     message = await state.get_value("message", "")
-    # await state.update_data(new_record={}, state_stack=[])
+    await state.update_data(form_data={}, state_stack=[], orders=[])
     await state.set_state()
 
     # Save to db
@@ -148,7 +110,7 @@ async def save_to_db(
             _save_to_db(new_record=order, order_repo=order_repo)
             await send_message_to_admin(bot=bot, context=message)
 
-    _save_to_db(new_record=new_record, order_repo=order_repo)
+    _save_to_db(new_record=form_data, order_repo=order_repo)
     await send_message_to_admin(bot=bot, context=message)
 
     await callback.message.edit_text(text=message)  # type: ignore
@@ -167,10 +129,8 @@ async def add_more(
 ) -> None:
     data = await state.get_data()
     orders = data.get("orders", [])
-    print(orders)
-    new_record = data.get("new_record", {})
+    new_record = data.get("form_data", {})
     orders.append(new_record)
-    print(orders)
 
     await state.update_data(orders=orders)
     await state_mgr.push_state_stack(state, SalesOrderForm.product_id)

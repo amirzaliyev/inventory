@@ -9,6 +9,8 @@ from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
 from config import settings
 from data.models import Attendance, ProductionRecord
 from handlers.forms import ProductionRecordForm
+from handlers.generic import handler_registry
+from handlers.handler_manager import HandlerManager
 from keyboards import save_kb
 from resources.string import READY, SAVE, SUCCESSFULLY_SAVED
 
@@ -17,7 +19,7 @@ if TYPE_CHECKING:
 
     from aiogram import Bot
     from aiogram.fsm.context import FSMContext
-    from aiogram.types import CallbackQuery, Message
+    from aiogram.types import CallbackQuery
 
     from data.repositories import (IBranchRepository,
                                    IProductionRecordRepository,
@@ -28,27 +30,56 @@ if TYPE_CHECKING:
 production_router = Router(name="production")
 
 
-@production_router.callback_query(
-    ProductionRecordForm.branch_id, F.data.regexp(r"branch_(\d+)").as_("branch_id_re")
-)
-async def select_branch(
-    callback: CallbackQuery,
-    state: FSMContext,
-    branch_id_re: Match,
-    state_mgr: StateManager,
-) -> None:
-    """Processes the selected branch and shows its production line"""
+PRODUCTIONRECORDFORM = [
+    {
+        "var_name": "branch_id",
+        "handler": "int_regex_cb",
+        "next_state": ProductionRecordForm.date,
+        "filters": (
+            ProductionRecordForm.branch_id,
+            F.data.regexp(r"branch_(\d+)").as_("regex_res"),
+        ),
+    },
+    {
+        "var_name": "date",
+        "handler": "date_picker",
+        "next_state": ProductionRecordForm.product_id,
+        "filters": (ProductionRecordForm.date, SimpleCalendarCallback.filter()),
+    },
+    {
+        "var_name": "product_id",
+        "handler": "int_regex_cb",
+        "next_state": ProductionRecordForm.quantity,
+        "filters": (
+            ProductionRecordForm.product_id,
+            F.data.regexp(r"product_(\d+)").as_("regex_res"),
+        ),
+    },
+    {
+        "var_name": "quantity",
+        "handler": "int_regex_msg",
+        "next_state": ProductionRecordForm.used_cement_amount,
+        "filters": (
+            ProductionRecordForm.quantity,
+            F.text.regexp(r"^(\d+)$").as_("regex_res"),
+        ),
+    },
+    {
+        "var_name": "used_cement_amount",
+        "handler": "int_regex_msg",
+        "next_state": ProductionRecordForm.workers,
+        "filters": (
+            ProductionRecordForm.used_cement_amount,
+            F.text.regexp(r"^(\d+)$").as_("regex_res"),
+        ),
+    },
+]
 
-    new_record = {"branch_id": int(branch_id_re.group(1))}
-    await state.update_data(new_record=new_record)
-
-    await state_mgr.push_state_stack(state, ProductionRecordForm.date)
-    await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
+_handler_mgr = HandlerManager(router=production_router)
+_handler_mgr.include_registry(handler_registry)
+_handler_mgr.create_handlers(form=PRODUCTIONRECORDFORM)
 
 
-@production_router.callback_query(
-    ProductionRecordForm.date, SimpleCalendarCallback.filter()
-)
 async def process_date(
     callback: CallbackQuery,
     state: FSMContext,
@@ -59,74 +90,13 @@ async def process_date(
     selected, date = await SimpleCalendar().process_selection(callback, callback_data)
 
     if selected:
-        new_record = await state.get_value("new_record", {})
+        form_data = await state.get_value("form_data", {})
 
-        new_record["date"] = date.strftime("%Y-%m-%d")
-        await state.update_data(new_record=new_record)
+        form_data["date"] = date.strftime("%Y-%m-%d")
+        await state.update_data(form_data=form_data)
 
         await state_mgr.push_state_stack(state, ProductionRecordForm.product_id)
         await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
-
-
-@production_router.callback_query(
-    ProductionRecordForm.product_id,
-    F.data.regexp(r"product_(\d+)").as_("product_id_re"),
-)
-async def process_product(
-    callback: CallbackQuery,
-    state: FSMContext,
-    product_id_re: Match,
-    state_mgr: StateManager,
-) -> None:
-    """Processes the selected product"""
-    new_record = await state.get_value("new_record", {})
-    product_id = int(product_id_re.group(1))
-    new_record["product_id"] = product_id
-
-    await state.update_data(new_record=new_record)
-
-    await state_mgr.push_state_stack(state, ProductionRecordForm.quantity)
-    await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
-
-
-@production_router.message(
-    ProductionRecordForm.quantity, F.text.regexp(r"^(\d+)$").as_("quantity_re")
-)
-async def process_quantity(
-    message: Message, state: FSMContext, quantity_re: Match, state_mgr: StateManager
-) -> None:
-    """Processes the quantity of manufactured goods"""
-    data = await state.get_data()
-    new_record = data.get("new_record", {})
-
-    new_record["quantity"] = int(quantity_re.group(1))
-    await state.update_data(new_record=new_record)
-
-    await state_mgr.push_state_stack(state, ProductionRecordForm.used_cement_amount)
-    await state_mgr.dispatch_query(message=message, state=state)
-
-
-@production_router.message(
-    ProductionRecordForm.used_cement_amount,
-    F.text.regexp(r"^(\d+)$").as_("used_cement_amount_re"),
-)
-async def process_cement_amount(
-    message: Message,
-    state: FSMContext,
-    used_cement_amount_re: Match,
-    state_mgr: StateManager,
-) -> None:
-    """Processes the used cement for the production"""
-    new_record = await state.get_value("new_record", {})
-
-    new_record["used_cement_amount"] = int(used_cement_amount_re.group(1))
-
-    await state.update_data(
-        new_record=new_record,
-    )
-
-    await state_mgr.push_state_stack(state, ProductionRecordForm.workers)
-    await state_mgr.dispatch_query(message=message, state=state, edit_msg=False)
 
 
 @production_router.callback_query(
@@ -174,7 +144,7 @@ async def show_summary(
     data = await state.get_data()
     await state_mgr.push_state_stack(state, ProductionRecordForm.save)
 
-    new_record = data["new_record"]
+    new_record = data["form_data"]
     present_employees = data["present_employees"]
 
     message = summary_message(
@@ -199,7 +169,7 @@ async def save_to_db(
     await state.update_data(new_record={}, state_stack=[])
     await state.set_state()
 
-    new_record = data["new_record"]
+    new_record = data["form_data"]
     present_employees = data["present_employees"]
     message = data["message"]
     _save_to_db(

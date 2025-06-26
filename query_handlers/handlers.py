@@ -63,9 +63,9 @@ async def show_products(
     state: FSMContext,
     branch_repo: IBranchRepository,
 ) -> Tuple[str, InlineKeyboardMarkup]:
-    new_record = await state.get_value("new_record", {})
+    form_data = await state.get_value("form_data", {})
 
-    branch_id = new_record["branch_id"]
+    branch_id = form_data["branch_id"]
 
     try:
         branch_name = branch_repo.get_by_id(branch_id=branch_id).name
@@ -84,8 +84,8 @@ async def get_quantity(
     state: FSMContext,
     product_repo: IProductRepository,
 ) -> Tuple[str, InlineKeyboardMarkup]:
-    new_record = await state.get_value("new_record", {})
-    product_id = new_record["product_id"]
+    form_data = await state.get_value("form_data", {})
+    product_id = form_data["product_id"]
     product_name = product_repo.get_by_id(product_id=product_id).name
 
     await state.update_data(product_name=product_name)
@@ -113,8 +113,8 @@ async def get_workers(
 ) -> Tuple[str, InlineKeyboardMarkup]:
     data = await state.get_data()
 
-    new_record = data.get("new_record", {})
-    branch_id = new_record["branch_id"]
+    form_data = data.get("form_data", {})
+    branch_id = form_data["branch_id"]
 
     workers = data.get("workers", [])
     present_employees = data.get("present_employees", set())
@@ -140,4 +140,5 @@ async def get_period_month() -> Tuple[str, InlineKeyboardMarkup]:
 
 @switch.register("stat_period")
 async def get_stat_period() -> Tuple[str, InlineKeyboardMarkup]:
+
     return SELECT_PERIOD, stat_period_kb()

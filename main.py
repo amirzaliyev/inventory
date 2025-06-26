@@ -30,7 +30,13 @@ async def main() -> None:
 
     # register routers
     dp.include_routers(
-        *[stat_router, main_router, production_router, sales_router, accounting_router]
+        *[
+            stat_router,
+            main_router,
+            production_router,
+            sales_router,
+            accounting_router,
+        ]
     )  # todo change the logic routing to stats
     dp.include_router(unhandled_router)
 
@@ -45,6 +51,7 @@ async def main() -> None:
     product_repo = ProductRepository(session=sessionmaker_factory, model=Product)
     order_repo = OrderRepository(session=sessionmaker_factory, model=Order)
     user_repo = UserRepository(session=sessionmaker_factory, model=User)
+
     state_mgr = StateManager(
         prod_record_repo=prod_record_repo,
         emp_repo=emp_repo,
@@ -64,7 +71,6 @@ async def main() -> None:
     await dp.start_polling(
         bot,
         prod_record_repo=prod_record_repo,
-        emp_repo=emp_repo,
         branch_repo=branch_repo,
         product_repo=product_repo,
         order_repo=order_repo,

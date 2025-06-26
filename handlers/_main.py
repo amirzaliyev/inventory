@@ -25,7 +25,7 @@ async def cmd_start(
 ) -> None:
 
     await state.set_state()
-    await state.update_data(state_stack=[], new_order={}, salary_form={})
+    await state.update_data(state_stack=[], form_data={}, salary_form={})
     await state_mgr.dispatch_query(message=message, state=state, edit_msg=False)
 
 
@@ -52,6 +52,8 @@ async def cancel(
     callback: CallbackQuery, state: FSMContext, state_mgr: StateManager
 ) -> None:
     await state_mgr.cancel(message=callback.message, state=state)  # type: ignore
+
+    # todo make cancel user friendly
     # last_state = await state_mgr._get_last_state(state=state)
     #
     # if last_state:

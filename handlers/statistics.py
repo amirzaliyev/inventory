@@ -7,9 +7,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import FSInputFile
 
-from keyboards import stat_period_kb
-from resources.string import (PREPARING_REPORT, REPORT_READY, SELECT_PERIOD,
-                              TOTAL)
+from resources.string import PREPARING_REPORT, REPORT_READY, TOTAL
 from utils.state_manager import StateManager
 from utils.stats import get_period
 from utils.visualize import make_df, make_human_readable, to_pdf
@@ -52,7 +50,6 @@ async def select_period(
 
     await state_mgr.push_state_stack(state, StatisticsForm.stat_period)
     await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
-
 
 
 @stat_router.callback_query(
