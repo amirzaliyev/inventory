@@ -25,7 +25,7 @@ async def cmd_start(
 ) -> None:
 
     await state.set_state()
-    await state.update_data(state_stack=[], form_data={}, salary_form={})
+    await state.update_data(state_stack=[], form_data={})
     await state_mgr.dispatch_query(message=message, state=state, edit_msg=False)
 
 

@@ -28,13 +28,23 @@ async def int_regex(
     var_name: str,
     next_state: State,
 ) -> None:
-    """Processes the selected branch and shows its production line"""
+    """
+    Generic handler for receveiving user prompt.
+    Saves the first match of regex result.
+
+    Args:
+        :param event: telegram event injected by dispatcher
+        :param state: 'FSMContext' instance, injected by dispatcher
+        :param regex_res: regex Match object, injected by dispatcher
+        :param state_mgr: StateManager object, injected by dispatcher
+        :param var_name: variable name to retrieve it later,
+                injected by HandlerManager during registration
+        :param next_state: next state to be set, injected by HandlerManager during registration
+    """
 
     form_data = await state.get_value("form_data", {})
     form_data[var_name] = int(regex_res.group(1))
     await state.update_data(form_data=form_data)
-
-    print(f"event handled by me. var_name: {var_name}")
 
     await state_mgr.push_state_stack(state, next_state)
     await state_mgr.dispatch_query(message=event.message, state=state)  # type: ignore
@@ -49,16 +59,57 @@ async def int_regex_message(
     var_name: str,
     next_state: State,
 ) -> None:
-    """Processes the selected branch and shows its production line"""
+    """
+    Generic handler for receveiving user prompt.
+    Saves the first match of regex result.
+
+    Args:
+        :param event: telegram event injected by dispatcher
+        :param state: 'FSMContext' instance, injected by dispatcher
+        :param regex_res: regex Match object, injected by dispatcher
+        :param state_mgr: StateManager object, injected by dispatcher
+        :param var_name: variable name to retrieve it later,
+                injected by HandlerManager during registration
+        :param next_state: next state to be set, injected by HandlerManager during registration
+    """
 
     form_data = await state.get_value("form_data", {})
     form_data[var_name] = int(regex_res.group(1))
     await state.update_data(form_data=form_data)
 
-    print(f"event handled by me. var_name: {var_name}")
-
     await state_mgr.push_state_stack(state, next_state)
     await state_mgr.dispatch_query(message=event, state=state)  # type: ignore
+
+
+@handler_registry.register("str_regex_cb", "callback_query")
+async def str_regex(
+    event: CallbackQuery,
+    state: FSMContext,
+    regex_res: Match,
+    state_mgr: StateManager,
+    var_name: str,
+    next_state: State,
+) -> None:
+    """
+    Generic handler for receveiving user prompt.
+    Saves the first match of regex result.
+
+    Args:
+        :param event: telegram event injected by dispatcher
+        :param state: 'FSMContext' instance, injected by dispatcher
+        :param regex_res: regex Match object, injected by dispatcher
+        :param state_mgr: StateManager object, injected by dispatcher
+        :param var_name: variable name to retrieve it later,
+                injected by HandlerManager during registration
+        :param next_state: next state to be set, injected by HandlerManager during registration
+    """
+
+    form_data = await state.get_value("form_data", {})
+    form_data[var_name] = regex_res.group(1)
+    await state.update_data(form_data=form_data)
+
+    await state_mgr.push_state_stack(state, next_state)
+    await state_mgr.dispatch_query(message=event.message, state=state)  # type: ignore
 
 
 @handler_registry.register("date_picker", "callback_query")
@@ -70,7 +121,20 @@ async def process_date(
     var_name: str,
     next_state: State,
 ) -> None:
-    """Processes  the selected date"""
+    """
+    Generic handler for receveiving user prompt.
+    Saves the first match of regex result.
+
+    Args:
+        :param event: telegram event injected by dispatcher
+        :param state: 'FSMContext' instance, injected by dispatcher
+        :param callback_data: 'SimpleCalendarCallback' object, injected by dispatcher
+        :param state_mgr: StateManager object, injected by dispatcher
+        :param var_name: variable name to retrieve it later,
+                injected by HandlerManager during registration
+        :param next_state: next state to be set, injected by HandlerManager during registration
+    """
+
     selected, date = await SimpleCalendar().process_selection(event, callback_data)
 
     if selected:

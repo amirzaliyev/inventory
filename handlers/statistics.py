@@ -7,6 +7,8 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import FSInputFile
 
+from handlers.generic import handler_registry
+from handlers.handler_manager.handler_manager import HandlerManager
 from resources.string import PREPARING_REPORT, REPORT_READY, TOTAL
 from utils.state_manager import StateManager
 from utils.stats import get_period
@@ -24,6 +26,23 @@ if TYPE_CHECKING:
 
 stat_router = Router(name="statistics")
 
+STATISTICSFORM = [
+    {
+        "var_name": "activity",
+        "handler": "str_regex_cb",
+        "next_state": StatisticsForm.stat_period,
+        "filters": (
+            StatisticsForm.activity,
+            F.data.regexp(r"activity_(\w+)").as_("regex_res"),
+        ),
+    }
+]
+
+_handler_mgr = HandlerManager(router=stat_router)
+_handler_mgr.include_registry(handler_registry)
+_handler_mgr.create_handlers(STATISTICSFORM)
+
+
 
 @stat_router.message(Command("stats"))
 async def select_activity(
@@ -34,22 +53,6 @@ async def select_activity(
     await state.update_data(state_stack=[])
     await state_mgr.push_state_stack(state, StatisticsForm.activity)
     await state_mgr.dispatch_query(message=message, state=state)
-
-
-@stat_router.callback_query(
-    StatisticsForm.activity, F.data.regexp(r"activity_(\w+)").as_("activity_re")
-)
-async def select_period(
-    callback: CallbackQuery,
-    state: FSMContext,
-    activity_re: Match,
-    state_mgr: StateManager,
-) -> None:
-    activity = activity_re.group(1)
-    await state.update_data(activity=activity)
-
-    await state_mgr.push_state_stack(state, StatisticsForm.stat_period)
-    await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
 
 
 @stat_router.callback_query(
@@ -65,7 +68,8 @@ async def show_report(
     period_title = period_re.group(1)
     period = get_period(period_title=period_title)
 
-    activity = await state.get_value("activity", "")
+    form_data = await state.get_value("form_data", {})
+    activity = form_data.get("activity", "")
     title = "Ishlab chiqarish"
     headers = ["Nomi", "Soni"]
     col_order = ["name", "total_count"]

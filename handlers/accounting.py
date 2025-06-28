@@ -9,6 +9,8 @@ from aiogram.filters import Command
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import FSInputFile
 
+from handlers.generic import handler_registry
+from handlers.handler_manager.handler_manager import HandlerManager
 from resources.dicts import months
 from resources.string import CALCULATING, NO_RECORDS
 from utils.state_manager import StateManager
@@ -30,34 +32,34 @@ class AccountingForm(StatesGroup):
     period = State()
 
 
+ACCOUNTINGFORM = [
+    {
+        "var_name": "branch_id",
+        "next_state": AccountingForm.period,
+        "handler": "int_regex_cb",
+        "filters": (
+            AccountingForm.branch_id,
+            F.data.regexp(r"branch_(\d+)").as_("regex_res"),
+        ),
+    }
+]
+
+_handler_mgr = HandlerManager(router=accounting_router)
+_handler_mgr.include_registry(handler_registry)
+_handler_mgr.create_handlers(ACCOUNTINGFORM)
+
+
 @accounting_router.message(Command("oylik"))
 async def select_branch(
     message: Message,
     state: FSMContext,
     state_mgr: StateManager,
 ) -> None:
-    await state.update_data(state_stack=[], salary_form={})
+    await state.update_data(state_stack=[], form_data={})
 
     await state_mgr.push_state_stack(state, AccountingForm.branch_id)
 
     await state_mgr.dispatch_query(message=message, state=state)
-
-
-@accounting_router.callback_query(
-    AccountingForm.branch_id, F.data.regexp(r"branch_(\d+)").as_("branch_id_re")
-)
-async def select_month(
-    callback: CallbackQuery,
-    state: FSMContext,
-    branch_id_re: Match,
-    state_mgr: StateManager,
-) -> None:
-    await state_mgr.push_state_stack(state, AccountingForm.period)
-
-    salary_form = {"branch_id": int(branch_id_re.group(1))}
-    await state.update_data(salary_form=salary_form)
-
-    await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
 
 
 @accounting_router.callback_query(
@@ -67,8 +69,8 @@ async def calculate_salary(
     callback: CallbackQuery, state: FSMContext, month_re: Match, accounting: Accounting
 ) -> None:
     month = int(month_re.group(1))
-    salary_form = await state.get_value("salary_form", {})
-    branch_id = salary_form["branch_id"]
+    form_data = await state.get_value("form_data", {})
+    branch_id = form_data["branch_id"]
     last_day = calendar.monthrange(2025, month)[1]
 
     period = {
@@ -115,4 +117,4 @@ async def calculate_salary(
     )
     await msg.delete()  # type: ignore
     await state.set_state()
-    await state.update_data(salary_form={})
+    await state.update_data(form_data={})
