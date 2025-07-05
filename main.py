@@ -17,7 +17,7 @@ from data.repositories import (BranchRepository, EmployeeRepository,
 from data.repositories.user_repository import UserRepository
 from handlers import (accounting_router, main_router, production_router,
                       sales_router, stat_router, unhandled_router)
-from query_handlers import switch
+from query_handlers import switch, accounting_switch
 from utils import StateManager
 
 
@@ -61,6 +61,7 @@ async def main() -> None:
         user_repo=user_repo,
     )
     state_mgr.include_switch(switch=switch)
+    state_mgr.include_switch(switch=accounting_switch)
 
     accounting = Accounting(
         branch_repo=branch_repo,

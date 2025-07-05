@@ -2,68 +2,70 @@ from __future__ import annotations
 
 import calendar
 import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import FSInputFile
+from aiogram.types import CallbackQuery, FSInputFile
 
 from handlers.generic import handler_registry
 from handlers.handler_manager.handler_manager import HandlerManager
 from resources.dicts import months
-from resources.string import CALCULATING, NO_RECORDS
-from utils.state_manager import StateManager
+from resources.string import CALCULATING, NO_RECORDS, SALARY
 from utils.visualize import make_df, make_human_readable, to_pdf
+
+from .forms import AccountingForm, SalaryForm
 
 if TYPE_CHECKING:
     from re import Match
 
     from aiogram.fsm.context import FSMContext
-    from aiogram.types import CallbackQuery, Message
+    from aiogram.types import Message
 
     from core.accounting import Accounting
+    from utils.state_manager import StateManager
 
-accounting_router = Router(name="accounting")
-
-
-class AccountingForm(StatesGroup):
-    branch_id = State()
-    period = State()
+salary_router = Router(name="salary")
 
 
-ACCOUNTINGFORM = [
+SALARYFORM = [
     {
         "var_name": "branch_id",
-        "next_state": AccountingForm.period,
+        "next_state": SalaryForm.period,
         "handler": "int_regex_cb",
         "filters": (
-            AccountingForm.branch_id,
+            SalaryForm.branch_id,
             F.data.regexp(r"branch_(\d+)").as_("regex_res"),
         ),
     }
 ]
 
-_handler_mgr = HandlerManager(router=accounting_router)
+_handler_mgr = HandlerManager(router=salary_router)
 _handler_mgr.include_registry(handler_registry)
-_handler_mgr.create_handlers(ACCOUNTINGFORM)
+_handler_mgr.create_handlers(SALARYFORM)
 
 
-@accounting_router.message(Command("oylik"))
+@salary_router.message(Command("oylik"))
+@salary_router.callback_query(AccountingForm.accounting_menu, F.data == SALARY)
 async def select_branch(
-    message: Message,
+    event: Union[Message, CallbackQuery],
     state: FSMContext,
     state_mgr: StateManager,
 ) -> None:
     await state.update_data(state_stack=[], form_data={})
 
-    await state_mgr.push_state_stack(state, AccountingForm.branch_id)
+    await state_mgr.push_state_stack(state, SalaryForm.branch_id)
 
-    await state_mgr.dispatch_query(message=message, state=state)
+    if isinstance(event, CallbackQuery):
+        if event.message:
+            await state_mgr.dispatch_query(message=event.message, state=state)  # type: ignore
+            return
+
+    await state_mgr.dispatch_query(message=event, state=state) # type: ignore
 
 
-@accounting_router.callback_query(
-    AccountingForm.period, F.data.regexp(r"month_(\d{1,2})").as_("month_re")
+@salary_router.callback_query(
+    SalaryForm.period, F.data.regexp(r"month_(\d{1,2})").as_("month_re")
 )
 async def calculate_salary(
     callback: CallbackQuery, state: FSMContext, month_re: Match, accounting: Accounting

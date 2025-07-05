@@ -1,2 +1,2 @@
 from .accounting import *
-from .handlers import *
+from .salary import *

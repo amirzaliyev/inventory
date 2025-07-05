@@ -2,15 +2,16 @@
 TEXT = "text"
 CALLBACK_DATA = "callback_data"
 REPLY_MARKUP = "reply_markup"
-
+# -- keyboard creation end -- #
 
 # -- start -- #
-WELCOME_TEXT = "Assalomu aleykum. Xush kelibsiz!"
+WELCOME_TEXT = "Assalomu aleykum. Xush kelibsiz! {}"
 NO_PERMISSION = "Ushbu botdan foydalanish uchun sizda hech qanday ruxsat yo'q"
 
 BACK = "Orqaga"
 CANCELLED_BACK_TO_START = "Bekor qilindi. Bosh menyuga qaytmoqda"
 CANCELLED_BACK_TO_PREVIOUS = "Bekor qilindi. Oldingi bo'limga qaytmoqda"
+# -- start end -- #
 
 # -- record creation -- #
 PRODUCTION = "Ishlab chiqarish"
@@ -33,9 +34,15 @@ SOLD_PRODUCT_PRICE = "Sotilgan mahsulot narxini kiriting <blockquote>{}</blockqu
 READY = "Tayyor"
 SAVE = "Saqlash"
 SUCCESSFULLY_SAVED = "Muvaffaqqiyatli saqlandi!. Asosiy menyuga qaytish uchun /start"
-
+# -- record creation end -- #
 
 # -- accounting -- #
+ACCOUNTING_MENU = "accounting_menu"
+
+TRANSACTIONS = "Hisob-kitoblar"
+SALARY = "Oylik"
+INVENTORY = "Inventorizatsiya"
+
 SELECT_PERIOD = "Hisobot uchun davrni tanlang"
 PREPARING_REPORT = "Hisobot tayyorlanmoqda..."
 REPORT_READY = "Hisobot tayyor! \nBosh menyuga qaytish uchun /stats"
@@ -67,9 +74,11 @@ INVALID_RESPONSE = (
 )
 TOTAL = "Jami"
 ADD_PRODUCT = "Yana mahsulot qo'shish"
+# -- accounting end -- #
 
 
 # -- flows -- #
 BRANCH_NAME = "Bo'lim nomi"
 DATE = "Sana"
 PRODUCT_NAME = "Mahsulot nomi"
+# -- flows end -- #
