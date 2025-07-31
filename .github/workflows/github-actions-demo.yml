@@ -8,7 +8,7 @@ jobs:
       - run: echo "The job was automatically triggered by ${{ github.event }} event successfully"
       - run: echo "This job is running on {{ github.os }} server hosted by GitHub
       - run: echo "The name of your branch is {{ github.ref }} and my repository is {{ github.repository }}"
-      - name: "Checkout repository code"
+      - name: Checkout repository code
       - uses: actions/checkout@v4
       - run: echo "The {{ github.repository }} has been cloned to the runner."
       - name: List files in the repository
