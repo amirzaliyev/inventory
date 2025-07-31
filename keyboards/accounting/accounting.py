@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from resources.string import (CALLBACK_DATA, INVENTORY, SALARY, TEXT,
-                              TRANSACTIONS)
+from resources.string import CALLBACK_DATA, INVENTORY, SALARY, TEXT, TRANSACTIONS
 from utils.keyboard import make_inline_kb
 
 if TYPE_CHECKING:

@@ -18,6 +18,7 @@ PRODUCTION = "Ishlab chiqarish"
 
 SELECT_BRANCH = "Quyidagi bo'limlardan birini tanlang"
 SELECT_DATE = "Sanani tanlang (today - bugun)"
+CANT_SELECT_FUTURE_DATE = 'Kelajakdagi sanani tanlay olmaysiz'
 SELECT_PRODUCT = (
     "Quyidagi mahsulotlardan birini mahsulotni tanlang <blockquote>{}</blockquote>"
 )
@@ -42,10 +43,13 @@ ACCOUNTING_MENU = "accounting_menu"
 TRANSACTIONS = "Hisob-kitoblar"
 SALARY = "Oylik"
 INVENTORY = "Inventorizatsiya"
+PRODUCTS = "Mahsulotlar"
+CALCULATING = "Hisoblanmoqda... Iltimos, biroz kuting."
 
 SELECT_PERIOD = "Hisobot uchun davrni tanlang"
 PREPARING_REPORT = "Hisobot tayyorlanmoqda..."
 REPORT_READY = "Hisobot tayyor! \nBosh menyuga qaytish uchun /stats"
+
 
 WEEKLY = "Haftalik"
 MONTHLY = "Oylik"
@@ -67,7 +71,7 @@ OCTOBER = "Oktabr"
 NOVEMBER = "Noyabr"
 DECEMBER = "Dekabr"
 
-CALCULATING = "{} oyi uchun oylik hisoblanmoqda..."
+CALCULATING_SALARY = "{} oyi uchun oylik hisoblanmoqda..."
 NO_RECORDS = "Ushbu tanlov bo'yicha hech qanday ma'lumotlar yo'q"
 INVALID_RESPONSE = (
     "Kiritilgan ma'lumot noto'g'ri. \nIltimos qaytadan tekshirib ko'ring."

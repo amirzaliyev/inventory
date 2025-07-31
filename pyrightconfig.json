@@ -1,0 +1,17 @@
+{
+  "exclude": [
+    ".venv",
+    "migrations"
+  ],
+  "pythonVersion": "3.13",
+  "venv": ".venv",
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "pythonVersion": "3.13",
+      "extraPaths": []
+    }
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingTypeStubs": false
+}

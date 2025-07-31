@@ -1,3 +1,3 @@
 from aiogram import Router
 
-transactions_router = Router(name='transactions')
+transactions_router = Router(name="transactions")

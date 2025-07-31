@@ -11,3 +11,7 @@ class AccountingForm(StatesGroup):
 class SalaryForm(StatesGroup):
     branch_id = State()
     period = State()
+
+
+class InventoryForm(StatesGroup):
+    results = State()

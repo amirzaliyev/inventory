@@ -21,9 +21,11 @@ if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
     from aiogram.types import CallbackQuery
 
-    from data.repositories import (IBranchRepository,
-                                   IProductionRecordRepository,
-                                   IProductRepository)
+    from data.repositories import (
+        IBranchRepository,
+        IProductionRecordRepository,
+        IProductRepository,
+    )
     from utils.state_manager import StateManager
 
 
@@ -144,16 +146,18 @@ async def show_summary(
     data = await state.get_data()
     await state_mgr.push_state_stack(state, ProductionRecordForm.save)
 
-    new_record = data["form_data"]
-    present_employees = data["present_employees"]
+    form_data = data.get("form_data", {})
+    extras = data.get("extras", {})
+    present_employees = extras.get("present_employees", set())
 
     message = summary_message(
-        data=new_record,
+        data=form_data,
         branch_repo=branch_repo,
         product_repo=product_repo,
         present_employees=present_employees,
     )
-    await state.update_data(message=message)
+    extras.update(message=message)
+    await state.update_data(extras=extras)
 
     await callback.message.edit_text(text=message, reply_markup=save_kb())  # type: ignore
 
@@ -166,15 +170,15 @@ async def save_to_db(
     prod_record_repo: IProductionRecordRepository,
 ):
     data = await state.get_data()
-    await state.update_data(new_record={}, state_stack=[])
+    await state.update_data(form_data={}, state_stack=[])
     await state.set_state()
 
-    new_record = data["form_data"]
-    present_employees = data["present_employees"]
-    message = data["message"]
+    form_data = data["form_data"]
+    present_employees = data["extras"]["present_employees"]
+    message = data["extras"]["message"]
     _save_to_db(
         repository=prod_record_repo,
-        new_record=new_record,
+        form_data=form_data,
         workers=present_employees,
     )
     await bot.send_message(settings.SUPER_ADMIN, text=message)
@@ -205,10 +209,10 @@ def summary_message(
 
 def _save_to_db(
     repository: IProductionRecordRepository,
-    new_record: Dict[str, Any],
+    form_data: Dict[str, Any],
     workers: List[int],
 ) -> None:
-    new_record_obj = ProductionRecord(**new_record)
+    new_record_obj = ProductionRecord(**form_data)
 
     new_inserted_record = repository.create_record(new_record=new_record_obj)
 

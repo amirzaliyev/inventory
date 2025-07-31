@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import date
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 
-from sqlalchemy import func, select
+from sqlalchemy import desc, func, select, text
 from sqlalchemy.orm import selectinload
 
 from data.models import Attendance, Product
@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 
 class IProductionRecordRepository(ABC):
-
     def __init__(
         self, session: "sessionmaker[Session]", model: Type[ProductionRecord]
     ) -> None:
@@ -69,7 +68,7 @@ class IProductionRecordRepository(ABC):
         self, date_from: date, date_to: date
     ) -> List[ProductionRecord]:
         """
-        Filters the 'ProductionRecord' by given period. 
+        Filters the 'ProductionRecord' by given period.
         It will eagerly load all collections of that model.
 
         Params:
@@ -108,7 +107,6 @@ class ProductionRecordRepository(IProductionRecordRepository):
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
     ) -> List[Dict[str, Any]]:
-
         if date_to is None:
             date_to = date.today()
 
@@ -130,6 +128,7 @@ class ProductionRecordRepository(IProductionRecordRepository):
                 )
                 .join(Product)
                 .group_by(self._model.product_id, Product.name)
+                .order_by(desc(text("total_count")))
             )
             res = session.execute(select_stmt).mappings().all()
 
@@ -155,9 +154,7 @@ class ProductionRecordRepository(IProductionRecordRepository):
             stmt = stmt.options(
                 selectinload(self._model.employees).selectinload(Attendance.employee),
                 selectinload(self._model.product).selectinload(Product.rates),
-            ).order_by(
-                self._model.date
-            )  # todo fix tight coupling problem
+            ).order_by(self._model.date)  # todo fix tight coupling problem
 
             results = session.execute(stmt).scalars().all()
 

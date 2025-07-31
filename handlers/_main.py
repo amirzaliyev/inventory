@@ -25,7 +25,7 @@ async def cmd_start(
 ) -> None:
 
     await state.set_state()
-    await state.update_data(state_stack=[], form_data={})
+    await state.update_data(state_stack=[], form_data={}, extras={})
     await state_mgr.dispatch_query(message=message, state=state, edit_msg=False)
 
 
@@ -47,7 +47,7 @@ async def start_record_adding(
     await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
 
 
-@main_router.callback_query(or_f(F.data == BACK, Command("cancel")))
+@main_router.callback_query(F.data == BACK)
 async def cancel(
     callback: CallbackQuery, state: FSMContext, state_mgr: StateManager
 ) -> None:

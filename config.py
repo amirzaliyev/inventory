@@ -8,7 +8,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 if TYPE_CHECKING:
     from sqlalchemy.engine.url import URL
 
-# DIR = Path(__file__).absolute().parent
 BOT_DIR = Path(__file__).absolute().parent
 MEDIA_DIR = Path(BOT_DIR, "media")
 LOCALES_DIR = Path.joinpath(BOT_DIR, "locales")

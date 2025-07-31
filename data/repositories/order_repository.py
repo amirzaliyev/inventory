@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 
-from sqlalchemy import func, select
+from sqlalchemy import desc, func, select, text
 
 from data.models import Product
 
@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 
 
 class IOrderRepository(ABC):
-
     def __init__(self, session: "sessionmaker[Session]", model: Type[Order]) -> None:
         self._session = session
         self._model = model
@@ -53,7 +52,6 @@ class IOrderRepository(ABC):
 
 
 class OrderRepository(IOrderRepository):
-
     def __init__(self, session: "sessionmaker[Session]", model: Type[Order]) -> None:
         super().__init__(session=session, model=model)
 
@@ -70,7 +68,6 @@ class OrderRepository(IOrderRepository):
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
     ) -> List[Dict[str, Any]]:
-
         if date_to is None:
             date_to = datetime.now().date()
 
@@ -90,6 +87,7 @@ class OrderRepository(IOrderRepository):
                 )
                 .join(Product)
                 .group_by(self._model.product_id, Product.name)
+                .order_by(desc(text("total_count")))
             )
             res = session.execute(select_stmt).mappings().all()
 

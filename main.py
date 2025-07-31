@@ -9,15 +9,24 @@ from aiogram.enums.parse_mode import ParseMode
 from config import settings
 from core.accounting import Accounting
 from data.db import get_engine, get_sessionmaker
-from data.models import (Branch, Employee, Order, Product, ProductionRecord,
-                         User)
-from data.repositories import (BranchRepository, EmployeeRepository,
-                               OrderRepository, ProductionRecordRepository,
-                               ProductRepository)
+from data.models import Branch, Employee, Order, Product, ProductionRecord, User
+from data.repositories import (
+    BranchRepository,
+    EmployeeRepository,
+    OrderRepository,
+    ProductionRecordRepository,
+    ProductRepository,
+)
 from data.repositories.user_repository import UserRepository
-from handlers import (accounting_router, main_router, production_router,
-                      sales_router, stat_router, unhandled_router)
-from query_handlers import switch, accounting_switch
+from handlers import (
+    accounting_router,
+    main_router,
+    production_router,
+    sales_router,
+    stat_router,
+    unhandled_router,
+)
+from query_handlers import accounting_switch, inv_switch, switch
 from utils import StateManager
 
 
@@ -37,7 +46,7 @@ async def main() -> None:
             sales_router,
             accounting_router,
         ]
-    )  # todo change the logic routing to stats
+    )
     dp.include_router(unhandled_router)
 
     # Initialize dependencies
@@ -62,6 +71,7 @@ async def main() -> None:
     )
     state_mgr.include_switch(switch=switch)
     state_mgr.include_switch(switch=accounting_switch)
+    state_mgr.include_switch(switch=inv_switch)
 
     accounting = Accounting(
         branch_repo=branch_repo,

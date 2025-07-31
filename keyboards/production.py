@@ -16,12 +16,12 @@ if TYPE_CHECKING:
 
 def branches_kb(branches: List[Dict[str, Any]]) -> InlineKeyboardMarkup:
     """Available branches"""
-    # static data only for now
+
     buttons = []
     for branch in branches:
         button = {}
         button[TEXT] = branch["name"]  # type: ignore
-        button[CALLBACK_DATA] = f"branch_{branch["id"]}"  # type: ignore
+        button[CALLBACK_DATA] = f"branch_{branch['id']}"  # type: ignore
 
         buttons.append(button)
 
@@ -30,6 +30,7 @@ def branches_kb(branches: List[Dict[str, Any]]) -> InlineKeyboardMarkup:
 
 async def select_date_kb() -> InlineKeyboardMarkup:
     """Calendar keyboard for easy date selection"""
+
     calendar = await SimpleCalendar().start_calendar()
 
     calendar.inline_keyboard += back_kb().inline_keyboard
@@ -38,12 +39,12 @@ async def select_date_kb() -> InlineKeyboardMarkup:
 
 def products_kb(products: List[Dict[str, Any]]) -> InlineKeyboardMarkup:
     """Shows available products to the selected branch"""
-    # static data only for now
+
     buttons = []
     for product in products:
         btn = {}
         btn[TEXT] = product["name"]
-        btn[CALLBACK_DATA] = f"product_{product["id"]}"
+        btn[CALLBACK_DATA] = f"product_{product['id']}"
         buttons.append(btn)
 
     return make_inline_kb(buttons, back_btn=True, size=[2], resize=False)

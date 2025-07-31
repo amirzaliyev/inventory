@@ -50,7 +50,7 @@ async def select_activity(
     state: FSMContext,
     state_mgr: StateManager,
 ) -> None:
-    await state.update_data(state_stack=[])
+    await state.update_data(state_stack=[], form_data={}, extras={})
     await state_mgr.push_state_stack(state, StatisticsForm.activity)
     await state_mgr.dispatch_query(message=message, state=state)
 

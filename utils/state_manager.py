@@ -110,7 +110,7 @@ class StateManager(Switch):
         await state.set_state(last_state)
         await self.dispatch_query(message=message, state=state)
 
-    def include_switch(self, switch) -> None:
+    def include_switch(self, switch: Switch) -> None:
         """
         Registers switch to state manager
         """

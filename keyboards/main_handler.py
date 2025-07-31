@@ -16,8 +16,6 @@ def current_action_kb() -> InlineKeyboardMarkup:
 
     production = {TEXT: PRODUCTION, CALLBACK_DATA: "activity_production"}
     sales = {TEXT: SALES, CALLBACK_DATA: "activity_sales"}
-    # production = {TEXT: PRODUCTION, CALLBACK_DATA: PRODUCTION}
-    # sales = {TEXT: SALES, CALLBACK_DATA: SALES}
     buttons.append(production)
     buttons.append(sales)
 

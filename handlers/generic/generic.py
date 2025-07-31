@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+from datetime import date
 from typing import TYPE_CHECKING
 
 from aiogram_calendar import SimpleCalendar
+
+from resources.string import CANT_SELECT_FUTURE_DATE
 
 from .handler_registry import HandlerRegistry
 
@@ -143,5 +147,13 @@ async def process_date(
         form_data[var_name] = date.strftime("%Y-%m-%d")
         await state.update_data(form_data=form_data)
 
-        await state_mgr.push_state_stack(state, next_state)
+        if date < date.today():
+            await state_mgr.push_state_stack(state, next_state)
+
+        else:
+            if event.message:
+                msg = await event.message.answer(text=CANT_SELECT_FUTURE_DATE)
+                await asyncio.sleep(1)
+                await msg.delete()
+
         await state_mgr.dispatch_query(message=event.message, state=state)  # type: ignore

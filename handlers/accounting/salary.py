@@ -11,7 +11,7 @@ from aiogram.types import CallbackQuery, FSInputFile
 from handlers.generic import handler_registry
 from handlers.handler_manager.handler_manager import HandlerManager
 from resources.dicts import months
-from resources.string import CALCULATING, NO_RECORDS, SALARY
+from resources.string import CALCULATING_SALARY, NO_RECORDS, SALARY
 from utils.visualize import make_df, make_human_readable, to_pdf
 
 from .forms import AccountingForm, SalaryForm
@@ -52,7 +52,7 @@ async def select_branch(
     state: FSMContext,
     state_mgr: StateManager,
 ) -> None:
-    await state.update_data(state_stack=[], form_data={})
+    await state.update_data(state_stack=[], form_data={}, extras={})
 
     await state_mgr.push_state_stack(state, SalaryForm.branch_id)
 
@@ -61,7 +61,7 @@ async def select_branch(
             await state_mgr.dispatch_query(message=event.message, state=state)  # type: ignore
             return
 
-    await state_mgr.dispatch_query(message=event, state=state) # type: ignore
+    await state_mgr.dispatch_query(message=event, state=state)  # type: ignore
 
 
 @salary_router.callback_query(
@@ -79,7 +79,9 @@ async def calculate_salary(
         "date_from": datetime.date(2025, month, 1),
         "date_to": datetime.date(2025, month, last_day),
     }
-    msg = await callback.message.edit_text(text=CALCULATING.format(months[month]))  # type: ignore
+    msg = await callback.message.edit_text(  # type: ignore
+        text=CALCULATING_SALARY.format(months[month])
+    )
     data = accounting.calculate_salary(branch_id=branch_id, period=period)
 
     details = data["details"]

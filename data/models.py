@@ -3,7 +3,7 @@ from typing import List
 
 from sqlalchemy import (DATE, TIMESTAMP, ForeignKey, Numeric, String,
                         UniqueConstraint, text)
-from sqlalchemy.dialects.mysql import BIGINT
+from sqlalchemy.dialects.postgresql import BIGINT
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 

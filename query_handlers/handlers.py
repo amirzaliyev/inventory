@@ -4,24 +4,41 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from core.authentication import login
 from data.exceptions import RecordNotFound
-from keyboards import (back_kb, branches_kb, current_action_kb, products_kb,
-                       select_date_kb)
-from keyboards.accounting import months_kb
-from keyboards.production import workers_on_duty_kb
-from keyboards.stats import stat_period_kb
-from resources.string import (ATTENDANCE, NO_PERMISSION, PRODUCT_QUANTITY,
-                              SELECT_BRANCH, SELECT_DATE, SELECT_MONTH,
-                              SELECT_PERIOD, SELECT_PRODUCT,
-                              SOLD_PRODUCT_PRICE, USED_CEMENT_AMOUNT,
-                              WELCOME_TEXT)
+from keyboards import (
+    back_kb,
+    branches_kb,
+    current_action_kb,
+    months_kb,
+    products_kb,
+    select_date_kb,
+    stat_period_kb,
+    workers_on_duty_kb,
+)
+from resources.string import (
+    ATTENDANCE,
+    NO_PERMISSION,
+    PRODUCT_QUANTITY,
+    SELECT_BRANCH,
+    SELECT_DATE,
+    SELECT_MONTH,
+    SELECT_PERIOD,
+    SELECT_PRODUCT,
+    SOLD_PRODUCT_PRICE,
+    USED_CEMENT_AMOUNT,
+    WELCOME_TEXT,
+)
 from utils.state_manager import Switch
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
     from aiogram.types import InlineKeyboardMarkup, Message
 
-    from data.repositories import (IBranchRepository, IEmployeeRepository,
-                                   IProductRepository, IUserRepository)
+    from data.repositories import (
+        IBranchRepository,
+        IEmployeeRepository,
+        IProductRepository,
+        IUserRepository,
+    )
 
 switch = Switch()
 
@@ -30,7 +47,6 @@ switch = Switch()
 async def cmd_start(
     message: Message, state: FSMContext, user_repo: IUserRepository
 ) -> Tuple[str, Optional[InlineKeyboardMarkup]]:
-
     has_access = await login(message.from_user.id, state=state, user_repo=user_repo)  # type: ignore
     if has_access:
         return WELCOME_TEXT, current_action_kb()
@@ -42,7 +58,6 @@ async def cmd_start(
 async def show_branches(
     branch_repo: IBranchRepository,
 ) -> Tuple[str, InlineKeyboardMarkup]:
-
     branches: List[Dict[str, Any]] = branch_repo.all(as_dict=True)  # type: ignore
 
     return (
@@ -95,7 +110,6 @@ async def get_quantity(
 
 @switch.register("price")
 async def get_price(state: FSMContext) -> Tuple[str, InlineKeyboardMarkup]:
-
     product_name = await state.get_value("product_name", "")
     return SOLD_PRODUCT_PRICE.format(product_name), back_kb()
 
@@ -112,20 +126,20 @@ async def get_workers(
     emp_repo: IEmployeeRepository,
 ) -> Tuple[str, InlineKeyboardMarkup]:
     data = await state.get_data()
-
     form_data = data.get("form_data", {})
+    extras = data.get("extras", {})
+
     branch_id = form_data["branch_id"]
 
-    workers = data.get("workers", [])
-    present_employees = data.get("present_employees", set())
+    workers = extras.get("workers", [])
+    present_employees = extras.get("present_employees", set())
     if not workers:
         workers = emp_repo.all(branch_id=branch_id)
         present_employees = set(worker.id for worker in workers)
 
-    await state.update_data(
-        workers=workers,
-        present_employees=present_employees,
-    )
+    extras.update(workers=workers, present_employees=present_employees)
+
+    await state.update_data(extras=extras)
 
     return ATTENDANCE, workers_on_duty_kb(
         workers=workers, present_employees=present_employees
@@ -134,11 +148,9 @@ async def get_workers(
 
 @switch.register("period")
 async def get_period_month() -> Tuple[str, InlineKeyboardMarkup]:
-
     return SELECT_MONTH, months_kb()
 
 
 @switch.register("stat_period")
 async def get_stat_period() -> Tuple[str, InlineKeyboardMarkup]:
-
     return SELECT_PERIOD, stat_period_kb()

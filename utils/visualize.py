@@ -26,7 +26,7 @@ def make_df(
         df.columns = column_names
 
     if sort_by:
-        df.sort_values(by=sort_by, ascending=False, inplace=True) # type: ignore
+        df.sort_values(by=sort_by, ascending=False, inplace=True)  # type: ignore
 
     return df  # type: ignore
 

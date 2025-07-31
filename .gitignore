@@ -9,7 +9,6 @@ media/
 .env
 *.sql
 get_id.py
-pyrightconfig.json
 decorators.py
 test.py
 test_*.py

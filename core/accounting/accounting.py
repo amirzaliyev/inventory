@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from data.repositories import (IBranchRepository, IOrderRepository,
-                               IProductionRecordRepository)
+from data.repositories import (
+    IBranchRepository,
+    IOrderRepository,
+    IProductionRecordRepository,
+)
 
 if TYPE_CHECKING:
     from datetime import date
@@ -72,7 +75,7 @@ class Accounting:
 
         for record in records:
             if record.employees:
-                rate = float(record.product.rates[0].payment_rate) # parse to float
+                rate = float(record.product.rates[0].payment_rate)  # parse to float
 
                 total_employees = len(record.employees)
                 employee_share = rate * record.quantity / total_employees
