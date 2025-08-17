@@ -49,6 +49,3 @@ async def show_balance(
 
     sold_products = order_repo.filter()
     manufactured_products = prod_record_repo.stat()
-    print(sold_products)
-    print()
-    print(manufactured_products)

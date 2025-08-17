@@ -4,41 +4,22 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from core.authentication import login
 from data.exceptions import RecordNotFound
-from keyboards import (
-    back_kb,
-    branches_kb,
-    current_action_kb,
-    months_kb,
-    products_kb,
-    select_date_kb,
-    stat_period_kb,
-    workers_on_duty_kb,
-)
-from resources.string import (
-    ATTENDANCE,
-    NO_PERMISSION,
-    PRODUCT_QUANTITY,
-    SELECT_BRANCH,
-    SELECT_DATE,
-    SELECT_MONTH,
-    SELECT_PERIOD,
-    SELECT_PRODUCT,
-    SOLD_PRODUCT_PRICE,
-    USED_CEMENT_AMOUNT,
-    WELCOME_TEXT,
-)
+from keyboards import (back_kb, branches_kb, current_action_kb, months_kb,
+                       products_kb, select_date_kb, stat_period_kb,
+                       workers_on_duty_kb)
+from resources.string import (ATTENDANCE, NO_PERMISSION, PRODUCT_QUANTITY,
+                              SELECT_BRANCH, SELECT_DATE, SELECT_MONTH,
+                              SELECT_PERIOD, SELECT_PRODUCT,
+                              SOLD_PRODUCT_PRICE, USED_CEMENT_AMOUNT,
+                              WELCOME_TEXT)
 from utils.state_manager import Switch
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
     from aiogram.types import InlineKeyboardMarkup, Message
 
-    from data.repositories import (
-        IBranchRepository,
-        IEmployeeRepository,
-        IProductRepository,
-        IUserRepository,
-    )
+    from data.repositories import (IBranchRepository, IEmployeeRepository,
+                                   IProductRepository, IUserRepository)
 
 switch = Switch()
 

@@ -21,11 +21,9 @@ if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
     from aiogram.types import CallbackQuery
 
-    from data.repositories import (
-        IBranchRepository,
-        IProductionRecordRepository,
-        IProductRepository,
-    )
+    from data.repositories import (IBranchRepository,
+                                   IProductionRecordRepository,
+                                   IProductRepository)
     from utils.state_manager import StateManager
 
 
@@ -82,25 +80,6 @@ _handler_mgr.include_registry(handler_registry)
 _handler_mgr.create_handlers(form=PRODUCTIONRECORDFORM)
 
 
-async def process_date(
-    callback: CallbackQuery,
-    state: FSMContext,
-    callback_data: SimpleCalendarCallback,
-    state_mgr: StateManager,
-) -> None:
-    """Processes  the selected date"""
-    selected, date = await SimpleCalendar().process_selection(callback, callback_data)
-
-    if selected:
-        form_data = await state.get_value("form_data", {})
-
-        form_data["date"] = date.strftime("%Y-%m-%d")
-        await state.update_data(form_data=form_data)
-
-        await state_mgr.push_state_stack(state, ProductionRecordForm.product_id)
-        await state_mgr.dispatch_query(message=callback.message, state=state)  # type: ignore
-
-
 @production_router.callback_query(
     ProductionRecordForm.workers,
     F.data.regexp(r"^worker_(\d+)$").as_("worker_id_re"),
@@ -114,7 +93,8 @@ async def process_workers(
     """Processes the workers on duty"""
     worker_id = int(worker_id_re.group(1))
 
-    present_employees = await state.get_value("present_employees", set())
+    extras = await state.get_value("extras", {})
+    present_employees = extras.get("present_employees", set())
 
     if worker_id in present_employees:
         present_employees.remove(worker_id)
